@@ -1,10 +1,10 @@
-# agenttrace
+# watchtower
 
 Terminal-based observability for Google ADK agents. View traces, tail live events, and debug agent behavior without leaving your terminal.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ agenttrace • Run: abc123 • 2024-01-15 14:32:01             │
+│ watchtower • Run: abc123 • 2024-01-15 14:32:01             │
 ├─────────────────────────────────────────────────────────────┤
 │ Duration: 4.2s  LLM Calls: 3  Tool Calls: 5  Tokens: 2,847 │
 ├─────────────────────────────────────────────────────────────┤
@@ -34,23 +34,23 @@ Terminal-based observability for Google ADK agents. View traces, tail live event
 ### Python SDK
 
 ```bash
-pip install agenttrace
+pip install watchtower
 ```
 
 ### CLI
 
 ```bash
-npm install -g agenttrace
+npm install -g watchtower
 ```
 
 Or with your preferred package manager:
 
 ```bash
 # yarn
-yarn global add agenttrace
+yarn global add watchtower
 
 # pnpm
-pnpm add -g agenttrace
+pnpm add -g watchtower
 ```
 
 ## Quick Start
@@ -60,7 +60,7 @@ pnpm add -g agenttrace
 ```python
 from google.adk.agents import Agent
 from google.adk.runners import InMemoryRunner
-from agenttrace import AgentTracePlugin
+from watchtower import AgentTracePlugin
 
 agent = Agent(
     name="my_agent",
@@ -85,32 +85,32 @@ async for event in runner.run_async(user_id, session_id, message):
 python my_agent.py
 ```
 
-Traces are automatically saved to `~/.agenttrace/traces/`.
+Traces are automatically saved to `~/.watchtower/traces/`.
 
 ### 3. View the trace
 
 ```bash
-agenttrace show last
+watchtower show last
 ```
 
 ## CLI Commands
 
-### `agenttrace show [trace]`
+### `watchtower show [trace]`
 
 View a saved trace file with interactive navigation.
 
 ```bash
 # View the most recent trace
-agenttrace show last
+watchtower show last
 
 # View by run ID
-agenttrace show abc123
+watchtower show abc123
 
 # View by date and run ID
-agenttrace show 2024-01-15_abc123
+watchtower show 2024-01-15_abc123
 
 # View a specific file
-agenttrace show ./path/to/trace.jsonl
+watchtower show ./path/to/trace.jsonl
 ```
 
 **Keyboard shortcuts:**
@@ -122,16 +122,16 @@ agenttrace show ./path/to/trace.jsonl
 | `b` / `Esc` | Back to list |
 | `q` | Quit |
 
-### `agenttrace tail <script>`
+### `watchtower tail <script>`
 
 Run a Python script and stream events live.
 
 ```bash
 # Basic usage
-agenttrace tail python my_agent.py
+watchtower tail python my_agent.py
 
 # With script arguments (use -- to separate)
-agenttrace tail -- python my_agent.py --verbose --config prod.yaml
+watchtower tail -- python my_agent.py --verbose --config prod.yaml
 ```
 
 **Keyboard shortcuts:**
@@ -142,19 +142,19 @@ agenttrace tail -- python my_agent.py --verbose --config prod.yaml
 | `Ctrl+C` | Stop agent and exit |
 | `q` | Quit |
 
-### `agenttrace list`
+### `watchtower list`
 
 List recent traces.
 
 ```bash
 # List last 10 traces (default)
-agenttrace list
+watchtower list
 
 # List more traces
-agenttrace list --limit 50
+watchtower list --limit 50
 
 # Filter by date
-agenttrace list --since 2024-01-10
+watchtower list --since 2024-01-10
 ```
 
 ## SDK API
@@ -162,9 +162,9 @@ agenttrace list --since 2024-01-10
 ### Basic Usage
 
 ```python
-from agenttrace import AgentTracePlugin
+from watchtower import AgentTracePlugin
 
-# Default configuration - writes to ~/.agenttrace/traces/
+# Default configuration - writes to ~/.watchtower/traces/
 plugin = AgentTracePlugin()
 
 # Add to your runner
@@ -179,7 +179,7 @@ runner = InMemoryRunner(
 
 ```python
 plugin = AgentTracePlugin(
-    trace_dir="~/.agenttrace/traces",  # Where to save traces
+    trace_dir="~/.watchtower/traces",  # Where to save traces
     enable_file=True,                   # Write traces to files
     enable_stdout=False,                # Stream to stdout (for CLI tail)
     run_id=None,                        # Custom run ID (auto-generated if None)
@@ -197,11 +197,11 @@ plugin = AgentTracePlugin(
 
 ### CLI-Spawned Mode
 
-When using `agenttrace tail`, enable stdout streaming:
+When using `watchtower tail`, enable stdout streaming:
 
 ```python
 import os
-from agenttrace import AgentTracePlugin
+from watchtower import AgentTracePlugin
 
 plugin = AgentTracePlugin(
     enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1",
@@ -211,7 +211,7 @@ plugin = AgentTracePlugin(
 
 ## Event Types
 
-agenttrace captures these events from your agent:
+watchtower captures these events from your agent:
 
 | Event | Description |
 |-------|-------------|
@@ -229,10 +229,10 @@ agenttrace captures these events from your agent:
 
 ### SDK Configuration
 
-`~/.agenttrace/config.yaml`
+`~/.watchtower/config.yaml`
 
 ```yaml
-trace_dir: ~/.agenttrace/traces
+trace_dir: ~/.watchtower/traces
 retention_days: 30
 buffer_size: 10
 sanitize_args: true
@@ -241,7 +241,7 @@ max_response_preview: 500
 
 ### CLI Configuration
 
-`~/.agenttrace/cli.yaml`
+`~/.watchtower/cli.yaml`
 
 ```yaml
 theme: dark              # dark | light | minimal
@@ -252,7 +252,7 @@ default_python: python3  # Python executable for tail
 
 ## Trace File Format
 
-Traces are stored as JSONL (newline-delimited JSON) in `~/.agenttrace/traces/`.
+Traces are stored as JSONL (newline-delimited JSON) in `~/.watchtower/traces/`.
 
 **File naming:** `{date}_{run_id}.jsonl`
 
@@ -271,7 +271,7 @@ Traces are stored as JSONL (newline-delimited JSON) in `~/.agenttrace/traces/`.
 
 ### Argument Sanitization
 
-By default, agenttrace redacts sensitive data from tool arguments:
+By default, watchtower redacts sensitive data from tool arguments:
 
 ```python
 # Input
@@ -302,7 +302,7 @@ All data stays on your machine. No external services, no telemetry, no network c
 
 2. Check the trace directory exists:
    ```bash
-   ls ~/.agenttrace/traces/
+   ls ~/.watchtower/traces/
    ```
 
 3. Ensure tracing isn't disabled:
@@ -322,7 +322,7 @@ All data stays on your machine. No external services, no telemetry, no network c
 ### CLI not rendering properly
 
 1. Ensure your terminal supports ANSI colors
-2. Try a different theme: `theme: minimal` in `~/.agenttrace/cli.yaml`
+2. Try a different theme: `theme: minimal` in `~/.watchtower/cli.yaml`
 3. Check terminal width (minimum 60 columns recommended)
 
 ## Requirements
