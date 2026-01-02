@@ -1,9 +1,69 @@
 # ADK Observability SDK - System Design Document
 
+<<<<<<< Updated upstream
 **Project Name:** `watchtower`  
 **Version:** 0.1.0 (MVP)  
 **Date:** December 2024  
 **Stack:** Python SDK + TypeScript/Ink CLI  
+=======
+**Project Name:** `watchtower`
+**Version:** 0.1.0 (MVP)
+**Date:** December 2024
+**Stack:** Python SDK + TypeScript/Ink CLI
+
+---
+
+## Table of Contents
+
+1. [Executive Summary](#1-executive-summary)
+2. [Architecture Overview](#2-architecture-overview)
+3. [Component Design](#3-component-design)
+   - [3.1 Python SDK (`watchtower-sdk`)](#31-python-sdk-watchtower-sdk)
+   - [3.2 TypeScript CLI (`watchtower`)](#32-typescript-cli-watchtower)
+4. [Data Formats](#4-data-formats)
+   - [4.1 Trace File Format (JSONL)](#41-trace-file-format-jsonl)
+   - [4.2 Live Stream Format (JSON-RPC 2.0 Notifications)](#42-live-stream-format-json-rpc-20-notifications)
+   - [4.3 Event Type Reference](#43-event-type-reference)
+5. [Configuration](#5-configuration)
+   - [5.1 SDK Configuration](#51-sdk-configuration)
+   - [5.2 CLI Configuration](#52-cli-configuration)
+6. [Error Handling](#6-error-handling)
+   - [6.1 SDK Error Handling](#61-sdk-error-handling)
+   - [6.2 CLI Error Handling](#62-cli-error-handling)
+7. [Security Considerations](#7-security-considerations)
+   - [7.1 Argument Sanitization](#71-argument-sanitization)
+   - [7.2 File Permissions](#72-file-permissions)
+   - [7.3 No Remote Transmission](#73-no-remote-transmission)
+8. [Extensibility & Framework Agnosticism](#8-extensibility--framework-agnosticism)
+   - [8.1 Design Philosophy](#81-design-philosophy)
+   - [8.2 Abstraction Layers](#82-abstraction-layers)
+   - [8.3 Universal Event Schema](#83-universal-event-schema)
+   - [8.4 Provider Adapter Interface](#84-provider-adapter-interface)
+   - [8.5 Configuration Strategy](#85-configuration-strategy)
+   - [8.6 Storage Backend Abstraction](#86-storage-backend-abstraction)
+   - [8.7 CLI Framework Agnosticism](#87-cli-framework-agnosticism)
+   - [8.8 Migration Path](#88-migration-path)
+   - [8.9 Implementation Checklist](#89-implementation-checklist-for-framework-agnosticism)
+9. [Cloud Deployment & Production Environments](#9-cloud-deployment--production-environments)
+   - [9.1 Deployment Architecture](#91-deployment-architecture)
+   - [9.2 Cloud Storage Backends](#92-cloud-storage-backends)
+   - [9.3 Remote Access Patterns](#93-remote-access-patterns)
+   - [9.4 Authentication & Authorization](#94-authentication--authorization)
+   - [9.5 Multi-Instance Coordination](#95-multi-instance-coordination)
+   - [9.6 Environment-Specific Configuration](#96-environment-specific-configuration)
+   - [9.7 Performance & Cost Optimization](#97-performance--cost-optimization)
+   - [9.8 Cloud Deployment Examples](#98-cloud-deployment-examples)
+10. [Future Considerations (Post-MVP)](#10-future-considerations-post-mvp)
+   - [10.1 Near-term Additions](#101-near-term-additions)
+   - [10.2 Medium-term Additions](#102-medium-term-additions)
+   - [10.3 Long-term Vision](#103-long-term-vision)
+11. [Implementation Plan](#11-implementation-plan)
+12. [Success Metrics](#12-success-metrics)
+13. [Appendices](#13-appendices)
+    - [Appendix A: Dependencies](#appendix-a-dependencies)
+    - [Appendix B: Directory Structure](#appendix-b-directory-structure)
+    - [Appendix C: Example Usage](#appendix-c-example-usage)
+>>>>>>> Stashed changes
 
 ---
 
