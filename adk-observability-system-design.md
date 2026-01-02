@@ -1,18 +1,63 @@
-# ADK Observability SDK - System Design Document
+# Watchtower - ADK Observability SDK
+## System Design Document
 
-**Project Name:** `agenttrace`  
-**Version:** 0.1.0 (MVP)  
-**Date:** December 2024  
-**Stack:** Python SDK + TypeScript/Ink CLI  
+**Project Name:** `watchtower`
+**Version:** 0.1.0 (MVP)
+**Date:** December 2024
+**Stack:** Python SDK + TypeScript/Ink CLI
+
+---
+
+## Table of Contents
+
+1. [Executive Summary](#1-executive-summary)
+2. [Architecture Overview](#2-architecture-overview)
+3. [Component Design](#3-component-design)
+   - [3.1 Python SDK (`watchtower-sdk`)](#31-python-sdk-watchtower-sdk)
+   - [3.2 TypeScript CLI (`watchtower`)](#32-typescript-cli-watchtower)
+4. [Data Formats](#4-data-formats)
+   - [4.1 Trace File Format (JSONL)](#41-trace-file-format-jsonl)
+   - [4.2 Live Stream Format (JSON-RPC 2.0 Notifications)](#42-live-stream-format-json-rpc-20-notifications)
+   - [4.3 Event Type Reference](#43-event-type-reference)
+5. [Configuration](#5-configuration)
+   - [5.1 SDK Configuration](#51-sdk-configuration)
+   - [5.2 CLI Configuration](#52-cli-configuration)
+6. [Error Handling](#6-error-handling)
+   - [6.1 SDK Error Handling](#61-sdk-error-handling)
+   - [6.2 CLI Error Handling](#62-cli-error-handling)
+7. [Security Considerations](#7-security-considerations)
+   - [7.1 Argument Sanitization](#71-argument-sanitization)
+   - [7.2 File Permissions](#72-file-permissions)
+   - [7.3 No Remote Transmission](#73-no-remote-transmission)
+8. [Extensibility & Framework Agnosticism](#8-extensibility--framework-agnosticism)
+   - [8.1 Design Philosophy](#81-design-philosophy)
+   - [8.2 Abstraction Layers](#82-abstraction-layers)
+   - [8.3 Universal Event Schema](#83-universal-event-schema)
+   - [8.4 Provider Adapter Interface](#84-provider-adapter-interface)
+   - [8.5 Configuration Strategy](#85-configuration-strategy)
+   - [8.6 Storage Backend Abstraction](#86-storage-backend-abstraction)
+   - [8.7 CLI Framework Agnosticism](#87-cli-framework-agnosticism)
+   - [8.8 Migration Path](#88-migration-path)
+   - [8.9 Implementation Checklist](#89-implementation-checklist-for-framework-agnosticism)
+9. [Future Considerations (Post-MVP)](#9-future-considerations-post-mvp)
+   - [9.1 Near-term Additions](#91-near-term-additions)
+   - [9.2 Medium-term Additions](#92-medium-term-additions)
+   - [9.3 Long-term Vision](#93-long-term-vision)
+10. [Implementation Plan](#10-implementation-plan)
+11. [Success Metrics](#11-success-metrics)
+12. [Appendices](#12-appendices)
+    - [Appendix A: Dependencies](#appendix-a-dependencies)
+    - [Appendix B: Directory Structure](#appendix-b-directory-structure)
+    - [Appendix C: Example Usage](#appendix-c-example-usage)
 
 ---
 
 ## 1. Executive Summary
 
-`agenttrace` is a plug-and-use observability SDK for Google ADK that lets developers view agent activity, tool calls, LLM interactions, and execution history through their terminal. The MVP focuses on two core experiences:
+`watchtower` is a plug-and-use observability SDK for Google ADK that lets developers view agent activity, tool calls, LLM interactions, and execution history through their terminal. The MVP focuses on two core experiences:
 
-1. **Passive Viewing** (`agenttrace show`) - View past traces from files
-2. **Live Tailing** (`agenttrace tail`) - Stream events in real-time
+1. **Passive Viewing** (`watchtower show`) - View past traces from files
+2. **Live Tailing** (`watchtower tail`) - Stream events in real-time
 
 The system consists of a Python SDK (wraps Google ADK via plugin) and a TypeScript CLI (renders UI via Ink).
 
@@ -41,7 +86,7 @@ The system consists of a Python SDK (wraps Google ADK via plugin) and a TypeScri
 │  │  │                     Communication Layer                      │    │   │
 │  │  │                                                              │    │   │
 │  │  │   LIVE TAIL: stdio (NDJSON stream)                          │    │   │
-│  │  │   PASSIVE:   File read (~/.agenttrace/traces/*.jsonl)       │    │   │
+│  │  │   PASSIVE:   File read (~/.watchtower/traces/*.jsonl)       │    │   │
 │  │  │                                                              │    │   │
 │  │  └─────────────────────────────────────────────────────────────┘    │   │
 │  │                              Python SDK                              │   │
@@ -70,18 +115,18 @@ The system consists of a Python SDK (wraps Google ADK via plugin) and a TypeScri
 
 ## 3. Component Design
 
-### 3.1 Python SDK (`agenttrace-sdk`)
+### 3.1 Python SDK (`watchtower-sdk`)
 
 #### 3.1.1 Package Structure
 
 ```
-agenttrace/
+watchtower/
 ├── __init__.py              # Public API exports
 ├── plugin.py                # ADK BasePlugin implementation
 ├── collector.py             # Event aggregation and normalization
 ├── writers/
 │   ├── __init__.py
-│   ├── file_writer.py       # Write traces to ~/.agenttrace/traces/
+│   ├── file_writer.py       # Write traces to ~/.watchtower/traces/
 │   └── stdout_writer.py     # Emit NDJSON to stdout for live tail
 ├── models/
 │   ├── __init__.py
@@ -96,7 +141,7 @@ agenttrace/
 
 #### 3.1.2 Core Classes
 
-**AgentTracePlugin (plugin.py)**
+**WatchtowerPlugin (plugin.py)**
 
 The main entry point - implements Google ADK's `BasePlugin` interface to hook into all agent lifecycle events.
 
@@ -112,7 +157,7 @@ from typing import Optional
 import time
 import uuid
 
-class AgentTracePlugin(BasePlugin):
+class WatchtowerPlugin(BasePlugin):
     """
     Observability plugin for Google ADK that captures all agent activity
     and emits it to file and/or stdout.
@@ -120,12 +165,12 @@ class AgentTracePlugin(BasePlugin):
     
     def __init__(
         self,
-        trace_dir: str = "~/.agenttrace/traces",
+        trace_dir: str = "~/.watchtower/traces",
         enable_file: bool = True,
         enable_stdout: bool = False,  # True when CLI spawns with --tail
         run_id: Optional[str] = None,
     ):
-        super().__init__(name="agenttrace")
+        super().__init__(name="watchtower")
         self.collector = EventCollector()
         self.file_writer = FileWriter(trace_dir) if enable_file else None
         self.stdout_writer = StdoutWriter() if enable_stdout else None
@@ -338,7 +383,10 @@ class BaseEvent:
     type: EventType
     run_id: str
     timestamp: float = field(default_factory=time.time)
-    
+    schema_version: str = "1.0.0"  # Semantic versioning for event schema
+    framework: str = "adk"  # Framework identifier (adk, langchain, crewai, etc.)
+    metadata: dict = field(default_factory=dict)  # Extension point for custom data
+
     def to_dict(self) -> dict:
         return asdict(self)
 
@@ -347,7 +395,9 @@ class BaseEvent:
 class LLMRequestEvent(BaseEvent):
     type: EventType = EventType.LLM_REQUEST
     request_id: str = ""
-    model: str = ""
+    provider: str = ""  # Model provider: "google", "openai", "anthropic", "local"
+    model: str = ""  # Normalized model name: "gemini-2.0-flash", "gpt-4", "claude-3-opus"
+    model_raw: str = ""  # Original model identifier from framework
     message_count: int = 0
     tools_available: List[str] = field(default_factory=list)
 
@@ -415,13 +465,13 @@ import fcntl  # For file locking on Unix
 
 class FileWriter:
     """
-    Writes trace events to JSONL files in ~/.agenttrace/traces/
+    Writes trace events to JSONL files in ~/.watchtower/traces/
     
     File naming: {date}_{run_id}.jsonl
     Example: 2024-01-15_abc123.jsonl
     """
     
-    def __init__(self, trace_dir: str = "~/.agenttrace/traces"):
+    def __init__(self, trace_dir: str = "~/.watchtower/traces"):
         self.trace_dir = Path(trace_dir).expanduser()
         self.trace_dir.mkdir(parents=True, exist_ok=True)
         self._current_file: Optional[Path] = None
@@ -528,7 +578,7 @@ class StdoutWriter:
 ```python
 from google.adk.agents import Agent
 from google.adk.runners import InMemoryRunner
-from agenttrace import AgentTracePlugin
+from watchtower import WatchtowerPlugin
 
 # Define your agent as normal
 agent = Agent(
@@ -542,10 +592,10 @@ agent = Agent(
 runner = InMemoryRunner(
     agent=agent,
     app_name="my_app",
-    plugins=[AgentTracePlugin()]  # <-- Just add this
+    plugins=[WatchtowerPlugin()]  # <-- Just add this
 )
 
-# Run as normal - traces automatically saved to ~/.agenttrace/traces/
+# Run as normal - traces automatically saved to ~/.watchtower/traces/
 async for event in runner.run_async(user_id, session_id, message):
     print(event.content)
 ```
@@ -554,18 +604,18 @@ async for event in runner.run_async(user_id, session_id, message):
 
 ```python
 import os
-from agenttrace import AgentTracePlugin
+from watchtower import WatchtowerPlugin
 
 # When spawned by CLI, enable stdout streaming
-plugin = AgentTracePlugin(
-    enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1",
-    run_id=os.environ.get("AGENTTRACE_RUN_ID"),
+plugin = WatchtowerPlugin(
+    enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1",
+    run_id=os.environ.get("WATCHTOWER_RUN_ID"),
 )
 ```
 
 ---
 
-### 3.2 TypeScript CLI (`agenttrace`)
+### 3.2 TypeScript CLI (`watchtower`)
 
 #### 3.2.1 Package Structure
 
@@ -576,9 +626,9 @@ cli/
 ├── src/
 │   ├── index.tsx              # Entry point, command routing
 │   ├── commands/
-│   │   ├── show.tsx           # agenttrace show [trace]
-│   │   ├── tail.tsx           # agenttrace tail <script>
-│   │   └── list.tsx           # agenttrace list
+│   │   ├── show.tsx           # watchtower show [trace]
+│   │   ├── tail.tsx           # watchtower tail <script>
+│   │   └── list.tsx           # watchtower list
 │   ├── components/
 │   │   ├── App.tsx            # Root component
 │   │   ├── TraceView.tsx      # Passive trace display
@@ -600,20 +650,20 @@ cli/
 │   └── styles/
 │       └── theme.ts           # Color scheme and styling
 └── bin/
-    └── agenttrace             # Executable entry point
+    └── watchtower             # Executable entry point
 ```
 
 #### 3.2.2 Command Design
 
-**`agenttrace show [trace]`** - Passive Viewing
+**`watchtower show [trace]`** - Passive Viewing
 
 ```
-$ agenttrace show last
-$ agenttrace show 2024-01-15_abc123
-$ agenttrace show ./path/to/trace.jsonl
+$ watchtower show last
+$ watchtower show 2024-01-15_abc123
+$ watchtower show ./path/to/trace.jsonl
 
 ┌─────────────────────────────────────────────────────────────┐
-│ agenttrace • Run: abc123 • 2024-01-15 14:32:01             │
+│ watchtower • Run: abc123 • 2024-01-15 14:32:01             │
 ├─────────────────────────────────────────────────────────────┤
 │ Summary                                                     │
 │ Duration: 4.2s  LLM Calls: 3  Tool Calls: 5  Tokens: 2,847 │
@@ -636,14 +686,14 @@ $ agenttrace show ./path/to/trace.jsonl
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**`agenttrace tail <script>`** - Live Tailing
+**`watchtower tail <script>`** - Live Tailing
 
 ```
-$ agenttrace tail python my_agent.py
-$ agenttrace tail -- python my_agent.py --arg1 value1
+$ watchtower tail python my_agent.py
+$ watchtower tail -- python my_agent.py --arg1 value1
 
 ┌─────────────────────────────────────────────────────────────┐
-│ agenttrace • LIVE • Run: xyz789                     ● REC  │
+│ watchtower • LIVE • Run: xyz789                     ● REC  │
 ├─────────────────────────────────────────────────────────────┤
 │ Stats     Duration: 1.2s  Tokens: 847  Tools: 2            │
 ├─────────────────────────────────────────────────────────────┤
@@ -660,12 +710,12 @@ $ agenttrace tail -- python my_agent.py --arg1 value1
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**`agenttrace list`** - List Recent Traces
+**`watchtower list`** - List Recent Traces
 
 ```
-$ agenttrace list
-$ agenttrace list --limit 20
-$ agenttrace list --since 2024-01-10
+$ watchtower list
+$ watchtower list --limit 20
+$ watchtower list --since 2024-01-10
 
 ┌──────────────────────────────────────────────────────────────┐
 │ Recent Traces                                                │
@@ -994,8 +1044,8 @@ export function useProcessStream(
       env: {
         ...process.env,
         PYTHONUNBUFFERED: '1',
-        AGENTTRACE_LIVE: '1',
-        AGENTTRACE_RUN_ID: runId.current,
+        WATCHTOWER_LIVE: '1',
+        WATCHTOWER_RUN_ID: runId.current,
       },
     });
     
@@ -1154,7 +1204,7 @@ export function useTraceFile(traceRef: string): UseTraceFileResult {
 
 ### 4.1 Trace File Format (JSONL)
 
-Each line is a self-contained JSON event. Files stored in `~/.agenttrace/traces/{date}_{run_id}.jsonl`.
+Each line is a self-contained JSON event. Files stored in `~/.watchtower/traces/{date}_{run_id}.jsonl`.
 
 ```jsonl
 {"type":"run.start","run_id":"abc123","timestamp":1705329121.000,"invocation_id":"inv_001","agent_name":"my_agent"}
@@ -1197,12 +1247,12 @@ Same event structure wrapped in JSON-RPC 2.0 notification format:
 Configuration loaded from (in priority order):
 1. Constructor arguments
 2. Environment variables
-3. `~/.agenttrace/config.yaml`
+3. `~/.watchtower/config.yaml`
 4. Defaults
 
 ```yaml
-# ~/.agenttrace/config.yaml
-trace_dir: ~/.agenttrace/traces
+# ~/.watchtower/config.yaml
+trace_dir: ~/.watchtower/traces
 retention_days: 30
 buffer_size: 10
 sanitize_args: true  # Remove sensitive data from tool args
@@ -1210,15 +1260,15 @@ max_response_preview: 500  # Characters to store in response_preview
 ```
 
 Environment variables:
-- `AGENTTRACE_DIR` - Override trace directory
-- `AGENTTRACE_LIVE` - Enable stdout streaming (set by CLI)
-- `AGENTTRACE_RUN_ID` - Override run ID (set by CLI)
-- `AGENTTRACE_DISABLE` - Disable all tracing
+- `WATCHTOWER_DIR` - Override trace directory
+- `WATCHTOWER_LIVE` - Enable stdout streaming (set by CLI)
+- `WATCHTOWER_RUN_ID` - Override run ID (set by CLI)
+- `WATCHTOWER_DISABLE` - Disable all tracing
 
 ### 5.2 CLI Configuration
 
 ```yaml
-# ~/.agenttrace/cli.yaml
+# ~/.watchtower/cli.yaml
 theme: dark  # dark | light | minimal
 max_events: 1000  # Max events to display
 timestamp_format: relative  # relative | absolute | unix
@@ -1249,7 +1299,7 @@ async def before_tool_callback(self, **kwargs):
 ### 6.2 CLI Error Handling
 
 - Process spawn failures shown with actionable message
-- File not found errors suggest `agenttrace list`
+- File not found errors suggest `watchtower list`
 - Parse errors in trace files skip malformed lines, show warning
 - Graceful shutdown on SIGINT/SIGTERM
 
@@ -1298,23 +1348,339 @@ MVP is local-only. No data leaves the machine unless explicitly configured in fu
 
 ---
 
-## 8. Future Considerations (Post-MVP)
+## 8. Extensibility & Framework Agnosticism
 
-### 8.1 Near-term Additions
+### 8.1 Design Philosophy
+
+While the MVP focuses on Google ADK, Watchtower is architected with framework and model agnosticism in mind. The core principle: **separate event capture from event rendering**.
+
+### 8.2 Abstraction Layers
+
+#### 8.2.1 Three-Layer Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    CLI/UI Layer (Universal)                  │
+│  TypeScript CLI that renders any conforming event stream    │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+        ┌──────────────────┼──────────────────┐
+        │                  │                  │
+┌───────▼────────┐ ┌───────▼────────┐ ┌──────▼─────────┐
+│  Core Library  │ │  Core Library  │ │  Core Library  │
+│  (Universal)   │ │  (Universal)   │ │  (Universal)   │
+│                │ │                │ │                │
+│ - Event Schema │ │ - Event Schema │ │ - Event Schema │
+│ - Writers      │ │ - Writers      │ │ - Writers      │
+│ - Serializers  │ │ - Serializers  │ │ - Serializers  │
+└───────┬────────┘ └───────┬────────┘ └────────┬───────┘
+        │                  │                  │
+┌───────▼────────┐ ┌───────▼────────┐ ┌──────▼─────────┐
+│  ADK Adapter   │ │ LangChain      │ │  CrewAI        │
+│  (Framework)   │ │  Adapter       │ │  Adapter       │
+└────────────────┘ └────────────────┘ └────────────────┘
+```
+
+#### 8.2.2 Package Structure (Future)
+
+```
+# Core package - framework agnostic
+watchtower-core/
+├── events/          # Universal event schema
+├── writers/         # File, stdout, custom writers
+├── config/          # Configuration management
+└── protocol/        # Event versioning & serialization
+
+# Framework adapters - separate packages
+watchtower-adk/      # Google ADK integration (MVP)
+watchtower-langchain/
+watchtower-crewai/
+watchtower-autogen/
+watchtower-openai/   # Direct OpenAI SDK wrapper
+
+# CLI - works with any adapter
+watchtower-cli/      # TypeScript CLI (universal)
+```
+
+### 8.3 Universal Event Schema
+
+#### 8.3.1 Event Versioning
+
+All events include a schema version for evolution:
+
+```python
+@dataclass
+class BaseEvent:
+    schema_version: str = "1.0.0"  # Semantic versioning
+    type: EventType
+    run_id: str
+    timestamp: float
+    framework: str = "adk"  # "adk", "langchain", "crewai", etc.
+    metadata: dict = field(default_factory=dict)  # Extension point
+```
+
+#### 8.3.2 Framework-Agnostic Event Types
+
+Current event types are already mostly framework-agnostic:
+
+| Event Type | Universal? | Notes |
+|------------|-----------|-------|
+| `run.start` | ✅ Yes | All frameworks have execution start |
+| `run.end` | ✅ Yes | All frameworks have execution end |
+| `llm.request` | ✅ Yes | LLM calls are universal |
+| `llm.response` | ✅ Yes | LLM responses are universal |
+| `tool.start` | ✅ Yes | Tool/function calling is universal |
+| `tool.end` | ✅ Yes | Tool completion is universal |
+| `tool.error` | ✅ Yes | Tool errors are universal |
+| `state.change` | ⚠️ Partial | ADK-specific, map to framework equiv |
+| `agent.transfer` | ✅ Yes | Multi-agent handoffs exist in many frameworks |
+
+#### 8.3.3 Model-Agnostic Fields
+
+Normalize model identifiers across providers:
+
+```python
+@dataclass
+class LLMRequestEvent(BaseEvent):
+    request_id: str
+    provider: str  # "google", "openai", "anthropic", "local"
+    model: str     # Normalized: "gemini-2.0-flash", "gpt-4", "claude-3-opus"
+    model_raw: str # Original from framework: "models/gemini-2.0-flash-001"
+    message_count: int
+    tools_available: List[str]
+```
+
+### 8.4 Provider Adapter Interface
+
+#### 8.4.1 Abstract Base Class
+
+```python
+from abc import ABC, abstractmethod
+from typing import AsyncIterator, Any
+
+class WatchtowerAdapter(ABC):
+    """
+    Base adapter that all framework integrations must implement.
+    Each adapter translates framework-specific events into universal events.
+    """
+
+    def __init__(
+        self,
+        trace_dir: str = "~/.watchtower/traces",
+        enable_file: bool = True,
+        enable_stdout: bool = False,
+        run_id: Optional[str] = None,
+    ):
+        self.collector = EventCollector()
+        self.file_writer = FileWriter(trace_dir) if enable_file else None
+        self.stdout_writer = StdoutWriter() if enable_stdout else None
+        self.run_id = run_id or str(uuid.uuid4())[:8]
+
+    @abstractmethod
+    def get_framework_name(self) -> str:
+        """Return framework identifier (e.g., 'adk', 'langchain')."""
+        pass
+
+    @abstractmethod
+    def attach(self, agent: Any) -> None:
+        """
+        Attach the adapter to the framework's agent/chain/executor.
+        Implementation varies by framework.
+        """
+        pass
+
+    def emit_event(self, event: BaseEvent) -> None:
+        """Universal event emission - same across all adapters."""
+        event.framework = self.get_framework_name()
+        if self.file_writer:
+            self.file_writer.write(event.to_dict())
+        if self.stdout_writer:
+            self.stdout_writer.write(event.to_dict())
+```
+
+#### 8.4.2 ADK Adapter (MVP Implementation)
+
+```python
+from watchtower_core import WatchtowerAdapter, BaseEvent
+from google.adk.plugins.base_plugin import BasePlugin
+
+class ADKAdapter(WatchtowerAdapter, BasePlugin):
+    """Google ADK-specific adapter."""
+
+    def get_framework_name(self) -> str:
+        return "adk"
+
+    def attach(self, runner: InMemoryRunner) -> None:
+        """ADK uses plugin system - add to runner."""
+        runner.plugins.append(self)
+
+    # ADK-specific hooks that emit universal events
+    async def before_model_callback(self, **kwargs) -> None:
+        event = self._translate_to_llm_request(kwargs)
+        self.emit_event(event)
+```
+
+#### 8.4.3 LangChain Adapter (Future Example)
+
+```python
+from watchtower_core import WatchtowerAdapter
+from langchain.callbacks.base import BaseCallbackHandler
+
+class LangChainAdapter(WatchtowerAdapter, BaseCallbackHandler):
+    """LangChain-specific adapter using callback system."""
+
+    def get_framework_name(self) -> str:
+        return "langchain"
+
+    def attach(self, chain: Any) -> None:
+        """LangChain uses callback handlers - add to chain config."""
+        chain.callbacks.append(self)
+
+    def on_llm_start(self, serialized: dict, prompts: list[str], **kwargs):
+        """LangChain callback -> universal event."""
+        event = LLMRequestEvent(
+            run_id=self.run_id,
+            request_id=kwargs.get("run_id", ""),
+            provider=self._extract_provider(serialized),
+            model=self._normalize_model_name(serialized),
+            message_count=len(prompts),
+        )
+        self.emit_event(event)
+```
+
+### 8.5 Configuration Strategy
+
+#### 8.5.1 Framework Detection
+
+```python
+# Auto-detect framework and use appropriate adapter
+from watchtower import auto_attach
+
+# Detects framework from agent type and attaches correct adapter
+watchtower = auto_attach(
+    agent=my_agent,  # Could be ADK agent, LangChain chain, etc.
+    trace_dir="~/.watchtower/traces"
+)
+```
+
+#### 8.5.2 Explicit Framework Selection
+
+```python
+# Explicit adapter selection
+from watchtower.adapters import ADKAdapter, LangChainAdapter
+
+# Google ADK
+adapter = ADKAdapter()
+runner = InMemoryRunner(agent=agent, plugins=[adapter])
+
+# LangChain
+adapter = LangChainAdapter()
+chain = LLMChain(llm=llm, callbacks=[adapter])
+```
+
+### 8.6 Storage Backend Abstraction
+
+#### 8.6.1 Writer Interface
+
+```python
+from abc import ABC, abstractmethod
+
+class TraceWriter(ABC):
+    """Abstract writer interface for pluggable backends."""
+
+    @abstractmethod
+    def write(self, event: dict) -> None:
+        """Write a single event."""
+        pass
+
+    @abstractmethod
+    def flush(self) -> None:
+        """Flush any buffered events."""
+        pass
+
+# Implementations
+class FileWriter(TraceWriter): ...      # JSONL files (MVP)
+class SQLiteWriter(TraceWriter): ...    # SQLite database
+class PostgresWriter(TraceWriter): ...  # Postgres with TimescaleDB
+class S3Writer(TraceWriter): ...        # AWS S3 for team storage
+```
+
+#### 8.6.2 Multi-Writer Support
+
+```python
+plugin = WatchtowerPlugin(
+    writers=[
+        FileWriter("~/.watchtower/traces"),    # Local backup
+        PostgresWriter("postgresql://..."),     # Team database
+        S3Writer("s3://my-traces"),            # Long-term storage
+    ]
+)
+```
+
+### 8.7 CLI Framework Agnosticism
+
+The CLI is **already framework-agnostic** by design:
+
+- Reads universal JSONL event format
+- Displays any conforming event stream
+- No ADK-specific rendering logic
+
+This means a trace from LangChain would render identically to one from ADK, as long as they emit the same event schema.
+
+### 8.8 Migration Path
+
+#### Phase 1 (MVP): ADK-Only
+- Single package: `watchtower`
+- Tightly coupled to ADK
+- Validates event schema works
+
+#### Phase 2: Extract Core
+- Split into `watchtower-core` + `watchtower-adk`
+- Define `WatchtowerAdapter` interface
+- Refactor ADK code to use adapter pattern
+
+#### Phase 3: Add Frameworks
+- Implement `watchtower-langchain`
+- Implement `watchtower-crewai`
+- Test CLI works with all adapters
+
+#### Phase 4: Community Adapters
+- Document adapter interface
+- Accept community-contributed adapters
+- Maintain registry of supported frameworks
+
+### 8.9 Implementation Checklist for Framework Agnosticism
+
+To ensure MVP doesn't paint us into a corner:
+
+- [x] Use framework-agnostic event type names (`llm.request` not `adk.model.request`)
+- [x] Include `framework` field in event schema
+- [x] Version events with `schema_version` field
+- [ ] Keep ADK-specific code isolated in `plugin.py`
+- [ ] Design event schema to accommodate other frameworks (add `metadata` extension point)
+- [ ] Document event schema independently of ADK
+- [ ] Use generic terminology in UI (e.g., "Agent" not "ADK Agent")
+- [ ] Avoid ADK-specific assumptions in CLI rendering logic
+
+---
+
+## 9. Future Considerations (Post-MVP)
+
+### 9.1 Near-term Additions
 
 - **Interactive mode** - Keyboard navigation, drill-down into events
-- **Filtering** - `agenttrace show last --tool search_web --errors-only`
-- **Search** - `agenttrace search "query" --since 7d`
-- **Export** - `agenttrace export last --format csv`
+- **Filtering** - `watchtower show last --tool search_web --errors-only`
+- **Search** - `watchtower search "query" --since 7d`
+- **Export** - `watchtower export last --format csv`
 
-### 8.2 Medium-term Additions
+### 9.2 Medium-term Additions
 
 - **HTTP daemon mode** - Long-running server for multiple clients
 - **Browser UI** - Web dashboard alongside CLI
 - **Multi-framework support** - LangChain, CrewAI, AutoGen adapters
 - **Multi-model support** - OpenAI, Anthropic, local models
 
-### 8.3 Long-term Vision
+### 9.3 Long-term Vision
 
 - **Replay** - Deterministic replay of traces with different models
 - **Diffing** - Compare traces side-by-side
@@ -1324,12 +1690,12 @@ MVP is local-only. No data leaves the machine unless explicitly configured in fu
 
 ---
 
-## 9. Implementation Plan
+## 10. Implementation Plan
 
 ### Phase 1: SDK Core (Week 1-2)
 
 - [ ] Set up Python package structure
-- [ ] Implement `AgentTracePlugin` with all ADK hooks
+- [ ] Implement `WatchtowerPlugin` with all ADK hooks
 - [ ] Implement `FileWriter` with JSONL output
 - [ ] Implement `StdoutWriter` with JSON-RPC format
 - [ ] Add event models and serialization
@@ -1347,7 +1713,7 @@ MVP is local-only. No data leaves the machine unless explicitly configured in fu
 
 ### Phase 3: Show Command (Week 3-4)
 
-- [ ] Implement `agenttrace show` command
+- [ ] Implement `watchtower show` command
 - [ ] Build `Summary` component
 - [ ] Build `EventDetail` component
 - [ ] Add keyboard navigation
@@ -1355,7 +1721,7 @@ MVP is local-only. No data leaves the machine unless explicitly configured in fu
 
 ### Phase 4: Tail Command (Week 4-5)
 
-- [ ] Implement `agenttrace tail` command
+- [ ] Implement `watchtower tail` command
 - [ ] Implement live event streaming with `<Static>`
 - [ ] Add real-time stats updates
 - [ ] Handle process lifecycle (start, stop, error)
@@ -1363,7 +1729,7 @@ MVP is local-only. No data leaves the machine unless explicitly configured in fu
 
 ### Phase 5: Polish & Release (Week 5-6)
 
-- [ ] Implement `agenttrace list` command
+- [ ] Implement `watchtower list` command
 - [ ] Add configuration file support
 - [ ] Write documentation and README
 - [ ] Create example agents for testing
@@ -1371,7 +1737,7 @@ MVP is local-only. No data leaves the machine unless explicitly configured in fu
 
 ---
 
-## 10. Success Metrics
+## 11. Success Metrics
 
 | Metric | Target | Measurement |
 |--------|--------|-------------|
@@ -1384,13 +1750,15 @@ MVP is local-only. No data leaves the machine unless explicitly configured in fu
 
 ---
 
-## Appendix A: Dependencies
+## 12. Appendices
+
+### Appendix A: Dependencies
 
 ### Python SDK
 
 ```toml
 [project]
-name = "agenttrace"
+name = "watchtower"
 version = "0.1.0"
 dependencies = [
     "google-adk>=0.1.0",
@@ -1407,7 +1775,7 @@ dev = [
 
 ```json
 {
-  "name": "agenttrace",
+  "name": "watchtower",
   "version": "0.1.0",
   "dependencies": {
     "ink": "^4.4.1",
@@ -1426,10 +1794,10 @@ dev = [
 
 ---
 
-## Appendix B: Directory Structure
+### Appendix B: Directory Structure
 
 ```
-~/.agenttrace/
+~/.watchtower/
 ├── config.yaml           # SDK configuration
 ├── cli.yaml              # CLI configuration
 └── traces/               # Trace files
@@ -1440,14 +1808,14 @@ dev = [
 
 ---
 
-## Appendix C: Example Usage
+### Appendix C: Example Usage
 
-### Basic SDK Integration
+#### Basic SDK Integration
 
 ```python
 from google.adk.agents import Agent
 from google.adk.runners import InMemoryRunner
-from agenttrace import AgentTracePlugin
+from watchtower import WatchtowerPlugin
 
 def search_web(query: str) -> dict:
     """Search the web for information."""
@@ -1463,7 +1831,7 @@ agent = Agent(
 runner = InMemoryRunner(
     agent=agent,
     app_name="research_app",
-    plugins=[AgentTracePlugin()],
+    plugins=[WatchtowerPlugin()],
 )
 
 # Run agent - traces automatically saved
@@ -1471,21 +1839,21 @@ async for event in runner.run_async("user1", "session1", "Find info about AI"):
     print(event.content)
 ```
 
-### CLI Usage
+#### CLI Usage
 
 ```bash
 # View the most recent trace
-agenttrace show last
+watchtower show last
 
 # View a specific trace
-agenttrace show 2024-01-15_abc123
+watchtower show 2024-01-15_abc123
 
 # List recent traces
-agenttrace list --limit 20
+watchtower list --limit 20
 
 # Run an agent with live tailing
-agenttrace tail python my_agent.py
+watchtower tail python my_agent.py
 
 # Run with arguments
-agenttrace tail -- python my_agent.py --verbose --config prod.yaml
+watchtower tail -- python my_agent.py --verbose --config prod.yaml
 ```
