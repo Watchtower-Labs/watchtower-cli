@@ -1,6 +1,6 @@
 # @watchtower/cli
 
-Terminal UI for viewing Google ADK agent traces. Part of the [Watchtower](https://github.com/anthropics/watchtower-cli) observability toolkit.
+Terminal UI for viewing Google ADK agent traces. Part of the [Watchtower](https://github.com/Watchtower-Labs/watchtower-cli) observability toolkit.
 
 ## Installation
 
@@ -88,7 +88,7 @@ Configuration is stored in `~/.watchtower/cli.yaml`.
 |---------|--------|---------|-------------|
 | `theme` | `dark`, `light`, `minimal` | `dark` | Color theme |
 | `maxEvents` | number | `1000` | Maximum events to display |
-| `timestampFormat` | `relative`, `absolute`, `unix` | `absolute` | Timestamp display format |
+| `timestampFormat` | `relative`, `absolute`, `unix` | `relative` | Timestamp display format |
 | `defaultPython` | string | `python3` | Python executable for tail command |
 
 ## Trace File Format
@@ -151,7 +151,7 @@ async for event in runner.run_async(user_id, session_id, message):
 
 ```bash
 # Clone the repo
-git clone https://github.com/anthropics/watchtower-cli
+git clone https://github.com/Watchtower-Labs/watchtower-cli
 cd watchtower-cli
 
 # Install dependencies

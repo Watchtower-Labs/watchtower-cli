@@ -103,23 +103,27 @@ function renderTypeSpecificFields(event: TraceEvent): React.ReactElement | null 
 								Summary:
 							</Text>
 							<Box paddingLeft={2} flexDirection="column">
-								<DetailRow
-									label="LLM Calls"
-									value={e.summary['llm_calls'] as number}
-								/>
-								<DetailRow
-									label="Tool Calls"
-									value={e.summary['tool_calls'] as number}
-								/>
-								<DetailRow
-									label="Total Tokens"
-									value={formatTokens(e.summary['total_tokens'] as number)}
-								/>
-								<DetailRow
-									label="Errors"
-									value={e.summary['errors'] as number}
-									color={(e.summary['errors'] as number) > 0 ? 'red' : undefined}
-								/>
+								{(() => {
+									const llm = (e.summary?.['llm_calls'] ?? 0) as number;
+									const tool = (e.summary?.['tool_calls'] ?? 0) as number;
+									const tokens = (e.summary?.['total_tokens'] ?? 0) as number;
+									const errors = (e.summary?.['errors'] ?? 0) as number;
+									return (
+										<>
+											<DetailRow label="LLM Calls" value={llm} />
+											<DetailRow label="Tool Calls" value={tool} />
+											<DetailRow
+												label="Total Tokens"
+												value={formatTokens(tokens)}
+											/>
+											<DetailRow
+												label="Errors"
+												value={errors}
+												color={errors > 0 ? 'red' : undefined}
+											/>
+										</>
+									);
+								})()}
 							</Box>
 						</Box>
 					)}
@@ -231,11 +235,13 @@ function renderTypeSpecificFields(event: TraceEvent): React.ReactElement | null 
 						label="Duration"
 						value={e.duration_ms ? formatDuration(e.duration_ms) : undefined}
 					/>
-					<DetailRow
-						label="Success"
-						value={e.success ? 'Yes' : 'No'}
-						color={e.success ? 'green' : 'red'}
-					/>
+					{e.success !== undefined && (
+						<DetailRow
+							label="Success"
+							value={e.success ? 'Yes' : 'No'}
+							color={e.success ? 'green' : 'red'}
+						/>
+					)}
 					{e.response_preview && (
 						<Box flexDirection="column" marginTop={1}>
 							<Text dimColor bold>

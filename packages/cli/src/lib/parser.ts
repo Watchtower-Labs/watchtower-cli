@@ -7,7 +7,6 @@ import * as readline from 'node:readline';
 import type {
 	TraceEvent,
 	TraceSummary,
-	JsonRpcNotification,
 	EventType,
 } from './types.js';
 
@@ -24,6 +23,44 @@ const validEventTypes = new Set<string>([
 	'agent.transfer',
 ]);
 
+// Validate that an object has valid TraceEvent fields
+function isValidTraceEvent(obj: unknown): obj is TraceEvent {
+	if (typeof obj !== 'object' || obj === null) {
+		return false;
+	}
+
+	const record = obj as Record<string, unknown>;
+
+	// Validate required fields
+	if (typeof record['type'] !== 'string') {
+		return false;
+	}
+
+	if (typeof record['run_id'] !== 'string') {
+		return false;
+	}
+
+	// Timestamp can be number or parseable string
+	const timestamp = record['timestamp'];
+	if (typeof timestamp === 'number') {
+		// Valid number timestamp
+	} else if (typeof timestamp === 'string') {
+		const parsed = Number(timestamp);
+		if (isNaN(parsed)) {
+			return false;
+		}
+	} else {
+		return false;
+	}
+
+	// Validate event type
+	if (!validEventTypes.has(record['type'])) {
+		return false;
+	}
+
+	return true;
+}
+
 // Parse a single JSONL line into a TraceEvent
 export function parseLine(line: string): TraceEvent | null {
 	const trimmed = line.trim();
@@ -32,23 +69,13 @@ export function parseLine(line: string): TraceEvent | null {
 	}
 
 	try {
-		const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+		const parsed = JSON.parse(trimmed) as unknown;
 
-		// Validate required fields
-		if (
-			typeof parsed['type'] !== 'string' ||
-			typeof parsed['run_id'] !== 'string' ||
-			typeof parsed['timestamp'] !== 'number'
-		) {
+		if (!isValidTraceEvent(parsed)) {
 			return null;
 		}
 
-		// Validate event type
-		if (!validEventTypes.has(parsed['type'])) {
-			return null;
-		}
-
-		return parsed as TraceEvent;
+		return parsed;
 	} catch {
 		return null;
 	}
@@ -69,8 +96,14 @@ export function parseJsonRpc(line: string): TraceEvent | null {
 			return null;
 		}
 
-		const notification = parsed as unknown as JsonRpcNotification;
-		return notification.params;
+		const params = parsed['params'];
+
+		// Validate that params contains a valid TraceEvent
+		if (!isValidTraceEvent(params)) {
+			return null;
+		}
+
+		return params;
 	} catch {
 		return null;
 	}

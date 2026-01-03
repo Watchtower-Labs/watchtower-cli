@@ -2,7 +2,7 @@
  * Tail command - Run a script and stream events live
  */
 
-import React, {useState, useCallback} from 'react';
+import React, {useState, useCallback, useRef} from 'react';
 import {Box, Text, Static} from 'ink';
 import {Header} from '../components/Header.js';
 import {Summary} from '../components/Summary.js';
@@ -21,25 +21,28 @@ export function TailCommand({script}: TailCommandProps): React.ReactElement {
 	const [completedEvents, setCompletedEvents] = useState<TraceEvent[]>([]);
 	const [currentEvent, setCurrentEvent] = useState<TraceEvent | null>(null);
 	const [baseTimestamp, setBaseTimestamp] = useState<number>(0);
+	const baseTimestampRef = useRef<number>(0);
 
 	// Handle incoming events
 	const handleEvent = useCallback(
 		(event: TraceEvent) => {
 			if (paused) return;
 
-			// Set base timestamp from first event
-			if (baseTimestamp === 0) {
+			// Set base timestamp from first event using ref to avoid stale closure
+			if (baseTimestampRef.current === 0) {
+				baseTimestampRef.current = event.timestamp;
 				setBaseTimestamp(event.timestamp);
 			}
 
-			// Move current event to completed, set new current
-			if (currentEvent) {
-				setCompletedEvents((prev) => [...prev, currentEvent]);
-			}
-
-			setCurrentEvent(event);
+			// Move current event to completed using functional updater
+			setCurrentEvent((prev) => {
+				if (prev) {
+					setCompletedEvents((events) => [...events, prev]);
+				}
+				return event;
+			});
 		},
-		[paused, currentEvent, baseTimestamp],
+		[paused],
 	);
 
 	const {status, runId, error, stats, stop} = useProcessStream(
