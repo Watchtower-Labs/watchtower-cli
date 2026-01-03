@@ -10,31 +10,43 @@ importers:
 
   packages/cli:
     dependencies:
+      chalk:
+        specifier: ^5.3.0
+        version: 5.6.2
       ink:
-        specifier: ^4.1.0
+        specifier: ^4.4.1
         version: 4.4.1(@types/react@18.3.27)(react@18.3.1)
-      meow:
-        specifier: ^11.0.0
-        version: 11.0.0
       react:
         specifier: ^18.2.0
         version: 18.3.1
+      uuid:
+        specifier: ^9.0.0
+        version: 9.0.1
+      yargs:
+        specifier: ^17.7.2
+        version: 17.7.2
     devDependencies:
       '@sindresorhus/tsconfig':
         specifier: ^3.0.1
         version: 3.0.1
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.27
       '@types/react':
-        specifier: ^18.0.32
+        specifier: ^18.2.0
         version: 18.3.27
+      '@types/uuid':
+        specifier: ^9.0.0
+        version: 9.0.8
+      '@types/yargs':
+        specifier: ^17.0.0
+        version: 17.0.35
       '@vdemedes/prettier-config':
         specifier: ^2.0.1
         version: 2.0.1
       ava:
         specifier: ^5.2.0
         version: 5.3.1
-      chalk:
-        specifier: ^5.2.0
-        version: 5.6.2
       eslint-config-xo-react:
         specifier: ^0.27.0
         version: 0.27.0(eslint-plugin-react-hooks@4.6.2(eslint@8.57.1))(eslint-plugin-react@7.37.5(eslint@8.57.1))(eslint@8.57.1)
@@ -54,7 +66,7 @@ importers:
         specifier: ^10.9.1
         version: 10.9.2(@types/node@20.19.27)(typescript@5.9.3)
       typescript:
-        specifier: ^5.0.3
+        specifier: ^5.3.0
         version: 5.9.3
       xo:
         specifier: ^0.53.1
@@ -349,6 +361,15 @@ packages:
 
   '@types/react@18.3.27':
     resolution: {integrity: sha512-cisd7gxkzjBKU2GgdYrTdtQx1SORymWyaAFhaxQPK9bYO9ot3Y5OikQRvY0VYQtvwjeQnizCINJAenh/V7MK2w==}
+
+  '@types/uuid@9.0.8':
+    resolution: {integrity: sha512-jg+97EGIcY9AGHJJRaaPVgetKDsrTgbRjQ5Msgjh/DQKEFl0DtyRr/VCOyD1T2R1MNeWPK/u7JoGhlDZnKBAfA==}
+
+  '@types/yargs-parser@21.0.3':
+    resolution: {integrity: sha512-I4q9QU9MQv4oEOz4tAHJtNz1cwuLxn2F3xcc2iV5WdqLPpUnj30aUuxt1mAxYTG+oe8CZMV/+6rU4S4gRDzqtQ==}
+
+  '@types/yargs@17.0.35':
+    resolution: {integrity: sha512-qUHkeCyQFxMXg79wQfTtfndEC+N9ZZg76HJftDJp+qH2tV7Gj4OJi7l+PiWwJ+pWtW8GwSmqsDj/oymhrTWXjg==}
 
   '@typescript-eslint/eslint-plugin@8.51.0':
     resolution: {integrity: sha512-XtssGWJvypyM2ytBnSnKtHYOGT+4ZwTnBVl36TA4nRO2f4PRNGz5/1OszHzcZCvcBMh+qb7I06uoCmLTRdR9og==}
@@ -3011,6 +3032,10 @@ packages:
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
 
+  uuid@9.0.1:
+    resolution: {integrity: sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==}
+    hasBin: true
+
   v8-compile-cache-lib@3.0.1:
     resolution: {integrity: sha512-wa7YjyUGfNZngI/vtK0UHAN+lgDCxBPCylVXGp0zu59Fz5aiGtNXaq3DhIov063MorB+VfufLh3JlF2KdTK3xg==}
 
@@ -3391,6 +3416,14 @@ snapshots:
     dependencies:
       '@types/prop-types': 15.7.15
       csstype: 3.2.3
+
+  '@types/uuid@9.0.8': {}
+
+  '@types/yargs-parser@21.0.3': {}
+
+  '@types/yargs@17.0.35':
+    dependencies:
+      '@types/yargs-parser': 21.0.3
 
   '@typescript-eslint/eslint-plugin@8.51.0(@typescript-eslint/parser@8.51.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1)(typescript@5.9.3)':
     dependencies:
@@ -6339,6 +6372,8 @@ snapshots:
   url-or-path@2.6.1: {}
 
   util-deprecate@1.0.2: {}
+
+  uuid@9.0.1: {}
 
   v8-compile-cache-lib@3.0.1: {}
 

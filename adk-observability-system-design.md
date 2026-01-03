@@ -2340,35 +2340,35 @@ resource "aws_iam_role_policy" "lambda_s3" {
 
 ### Phase 2: CLI Foundation (Week 2-3)
 
-- [ ] Set up TypeScript/Ink project structure
-- [ ] Implement command routing with yargs
-- [ ] Implement `useTraceFile` hook
-- [ ] Implement `useProcessStream` hook
-- [ ] Build basic `EventList` component
-- [ ] Build `Header` and `StatusBar` components
+- [x] Set up TypeScript/Ink project structure
+- [x] Implement command routing with yargs
+- [x] Implement `useTraceFile` hook
+- [x] Implement `useProcessStream` hook
+- [x] Build basic `EventList` component
+- [x] Build `Header` and `StatusBar` components
 
 ### Phase 3: Show Command (Week 3-4)
 
-- [ ] Implement `watchtower show` command
-- [ ] Build `Summary` component
-- [ ] Build `EventDetail` component
-- [ ] Add keyboard navigation
-- [ ] Handle edge cases (empty traces, large traces)
+- [x] Implement `watchtower show` command
+- [x] Build `Summary` component
+- [x] Build `EventDetail` component
+- [x] Add keyboard navigation
+- [x] Handle edge cases (empty traces, large traces)
 
 ### Phase 4: Tail Command (Week 4-5)
 
-- [ ] Implement `watchtower tail` command
-- [ ] Implement live event streaming with `<Static>`
-- [ ] Add real-time stats updates
-- [ ] Handle process lifecycle (start, stop, error)
-- [ ] Add pause/resume functionality
+- [x] Implement `watchtower tail` command
+- [x] Implement live event streaming with `<Static>`
+- [x] Add real-time stats updates
+- [x] Handle process lifecycle (start, stop, error)
+- [x] Add pause/resume functionality
 
 ### Phase 5: Polish & Release (Week 5-6)
 
-- [ ] Implement `watchtower list` command
-- [ ] Add configuration file support
-- [ ] Write documentation and README
-- [ ] Create example agents for testing
+- [x] Implement `watchtower list` command
+- [x] Add configuration file support
+- [x] Write documentation and README
+- [x] Create example agents for testing (skipped - user preference)
 - [ ] Package and publish to PyPI and npm
 
 ---
