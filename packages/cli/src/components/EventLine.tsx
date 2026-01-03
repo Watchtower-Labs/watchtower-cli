@@ -35,7 +35,7 @@ export function EventLine({
 	// Calculate relative or absolute timestamp
 	const timeStr = showTimestamp
 		? baseTimestamp
-			? `+${((event.timestamp - baseTimestamp) * 1000).toFixed(0).padStart(6)}ms`
+			? formatTimestamp(event.timestamp, 'relative', baseTimestamp).padStart(10)
 			: formatTimestamp(event.timestamp, 'absolute')
 		: '';
 

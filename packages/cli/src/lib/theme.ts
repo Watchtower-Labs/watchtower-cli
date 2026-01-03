@@ -65,6 +65,7 @@ export function getEventColor(type: EventType): string {
 export function formatTimestamp(
 	timestamp: number,
 	format: 'relative' | 'absolute' | 'unix' = 'absolute',
+	referenceTimestamp?: number,
 ): string {
 	if (format === 'unix') {
 		return timestamp.toFixed(3);
@@ -83,8 +84,15 @@ export function formatTimestamp(
 		return `${time}.${ms}`;
 	}
 
-	// Relative format - show time since start
-	return `+${(timestamp * 1000).toFixed(0)}ms`;
+	// Relative format - show time since reference (or start)
+	const ref = referenceTimestamp ?? 0;
+	const deltaMs = (timestamp - ref) * 1000;
+
+	if (deltaMs < 0) {
+		return `-${Math.abs(Math.round(deltaMs))}ms`;
+	}
+
+	return `+${Math.round(deltaMs)}ms`;
 }
 
 // Format duration in human-readable form

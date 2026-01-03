@@ -48,7 +48,10 @@ export function ListCommand({
 			setSelectedIndex((i) => Math.max(0, i - 1));
 		},
 		onDown: () => {
-			setSelectedIndex((i) => Math.min(traces.length - 1, i + 1));
+			setSelectedIndex((i) => {
+				if (traces.length === 0) return 0;
+				return Math.min(traces.length - 1, i + 1);
+			});
 		},
 		onEnter: () => {
 			const selected = traces[selectedIndex];
