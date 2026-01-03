@@ -1,6 +1,13 @@
-# watchtower
+# Watchtower
 
-Terminal-based observability for Google ADK agents. View traces, tail live events, and debug agent behavior without leaving your terminal.
+[![GitHub](https://img.shields.io/badge/GitHub-Watchtower--Labs%2Fwatchtower--cli-blue?logo=github)](https://github.com/Watchtower-Labs/watchtower-cli)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/Watchtower-Labs/watchtower-cli/blob/main/LICENSE)
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B-green?logo=node.js)](https://nodejs.org/)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python)](https://python.org/)
+
+Terminal-based observability for [Google ADK](https://google.github.io/adk-docs/) agents. View traces, tail live events, and debug agent behavior without leaving your terminal.
+
+> **Repository Structure:** This is a monorepo with the CLI on the [`cli`](https://github.com/Watchtower-Labs/watchtower-cli/tree/cli) branch and the Python SDK on the [`feature/phase1-sdk-core`](https://github.com/Watchtower-Labs/watchtower-cli/tree/feature/phase1-sdk-core) branch.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -34,23 +41,36 @@ Terminal-based observability for Google ADK agents. View traces, tail live event
 ### Python SDK
 
 ```bash
-pip install watchtower
+# Install from PyPI (when published)
+pip install watchtower-adk
+
+# Or install from source (feature/phase1-sdk-core branch)
+pip install git+https://github.com/Watchtower-Labs/watchtower-cli.git@feature/phase1-sdk-core
 ```
 
 ### CLI
 
 ```bash
-npm install -g watchtower
+npm install -g @watchtower/cli
 ```
 
 Or with your preferred package manager:
 
 ```bash
 # yarn
-yarn global add watchtower
+yarn global add @watchtower/cli
 
 # pnpm
-pnpm add -g watchtower
+pnpm add -g @watchtower/cli
+```
+
+Or install from source ([`cli`](https://github.com/Watchtower-Labs/watchtower-cli/tree/cli) branch):
+
+```bash
+git clone -b cli https://github.com/Watchtower-Labs/watchtower-cli.git
+cd watchtower-cli/packages/cli
+pnpm install && pnpm build
+pnpm link --global
 ```
 
 ## Quick Start
@@ -117,9 +137,12 @@ watchtower show ./path/to/trace.jsonl
 
 | Key | Action |
 |-----|--------|
-| `↑` / `↓` | Navigate events |
+| `↑` / `k` | Navigate up |
+| `↓` / `j` | Navigate down |
 | `Enter` | Expand event details |
 | `b` / `Esc` | Back to list |
+| `g` / `G` | Jump to start/end |
+| `u` / `d` | Page up/down |
 | `q` | Quit |
 
 ### `watchtower tail <script>`
@@ -156,6 +179,31 @@ watchtower list --limit 50
 # Filter by date
 watchtower list --since 2024-01-10
 ```
+
+### `watchtower config`
+
+Manage CLI configuration.
+
+```bash
+# Show current configuration
+watchtower config
+
+# Initialize default config file
+watchtower config --init
+
+# Set a configuration value
+watchtower config --set theme=light
+watchtower config --set timestampFormat=absolute
+```
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [CLI Guide](https://github.com/Watchtower-Labs/watchtower-cli/blob/main/docs/CLI.md) | Detailed CLI usage and configuration |
+| [SDK Guide](https://github.com/Watchtower-Labs/watchtower-cli/blob/main/docs/SDK.md) | Python SDK integration guide |
+| [Architecture](https://github.com/Watchtower-Labs/watchtower-cli/blob/main/docs/ARCHITECTURE.md) | System design and internals |
+| [Contributing](https://github.com/Watchtower-Labs/watchtower-cli/blob/main/CONTRIBUTING.md) | How to contribute |
 
 ## SDK API
 
@@ -211,7 +259,7 @@ plugin = AgentTracePlugin(
 
 ## Event Types
 
-watchtower captures these events from your agent:
+Watchtower captures these events from your agent:
 
 | Event | Description |
 |-------|-------------|
@@ -337,13 +385,62 @@ All data stays on your machine. No external services, no telemetry, no network c
 - Node.js 18+
 - Terminal with ANSI color support
 
+## Development
+
+### Repository Structure
+
+| Branch | Content | Description |
+|--------|---------|-------------|
+| [`main`](https://github.com/Watchtower-Labs/watchtower-cli/tree/main) | Web + Base | Landing page and monorepo setup |
+| [`cli`](https://github.com/Watchtower-Labs/watchtower-cli/tree/cli) | TypeScript CLI | Terminal UI (Ink/React) |
+| [`feature/phase1-sdk-core`](https://github.com/Watchtower-Labs/watchtower-cli/tree/feature/phase1-sdk-core) | Python SDK | ADK plugin + writers |
+
+### CLI Development
+
+```bash
+# Clone the CLI branch
+git clone -b cli https://github.com/Watchtower-Labs/watchtower-cli.git
+cd watchtower-cli
+
+# Install dependencies
+pnpm install
+
+# Build the CLI
+pnpm --filter @watchtower/cli build
+
+# Run locally
+node packages/cli/dist/index.js show last
+```
+
+### SDK Development
+
+```bash
+# Clone the SDK branch
+git clone -b feature/phase1-sdk-core https://github.com/Watchtower-Labs/watchtower-cli.git
+cd watchtower-cli
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # or `venv\Scripts\activate` on Windows
+
+# Install in development mode
+pip install -e ".[dev]"
+
+# Run tests
+pytest
+```
+
+See [CONTRIBUTING.md](https://github.com/Watchtower-Labs/watchtower-cli/blob/main/CONTRIBUTING.md) for development guidelines.
+
 ## License
 
-MIT
+[MIT](https://github.com/Watchtower-Labs/watchtower-cli/blob/main/LICENSE)
 
-## Contributing
+## Links
 
-Contributions welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+- [GitHub Repository](https://github.com/Watchtower-Labs/watchtower-cli)
+- [Issue Tracker](https://github.com/Watchtower-Labs/watchtower-cli/issues)
+- [Google ADK Documentation](https://google.github.io/adk-docs/)
 
 ---
 

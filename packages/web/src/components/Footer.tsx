@@ -1,6 +1,6 @@
 'use client'
 
-import { Github, Twitter } from 'lucide-react'
+import { Github } from 'lucide-react'
 
 const footerLinks = {
   Product: [
@@ -9,14 +9,14 @@ const footerLinks = {
     { label: 'Benefits', href: '#benefits' },
   ],
   Resources: [
-    { label: 'Documentation', href: '#' },
-    { label: 'GitHub', href: 'https://github.com' },
-    { label: 'Changelog', href: '#' },
+    { label: 'Documentation', href: '/docs' },
+    { label: 'Quick Start', href: '/docs/quickstart' },
+    { label: 'CLI Reference', href: '/docs/cli/show' },
   ],
   Community: [
-    { label: 'Discord', href: '#' },
-    { label: 'Twitter', href: '#' },
-    { label: 'Contributing', href: '#' },
+    { label: 'GitHub', href: 'https://github.com/Watchtower-Labs/watchtower-cli' },
+    { label: 'Discussions', href: 'https://github.com/Watchtower-Labs/watchtower-cli/discussions' },
+    { label: 'Issues', href: 'https://github.com/Watchtower-Labs/watchtower-cli/issues' },
   ],
 }
 
@@ -38,11 +38,8 @@ export function Footer() {
               Built by Watchtower Labs.
             </p>
             <div className="flex gap-4">
-              <a href="https://github.com" className="text-muted hover:text-white transition-colors">
+              <a href="https://github.com/Watchtower-Labs/watchtower-cli" className="text-muted hover:text-white transition-colors">
                 <Github className="w-5 h-5" />
-              </a>
-              <a href="https://twitter.com" className="text-muted hover:text-white transition-colors">
-                <Twitter className="w-5 h-5" />
               </a>
             </div>
           </div>
@@ -73,8 +70,7 @@ export function Footer() {
             &copy; {new Date().getFullYear()} Watchtower Labs. Open source under MIT license.
           </p>
           <div className="flex gap-6 text-sm">
-            <a href="#" className="text-muted hover:text-white transition-colors">Privacy</a>
-            <a href="#" className="text-muted hover:text-white transition-colors">Terms</a>
+            <a href="https://github.com/Watchtower-Labs/watchtower-cli/blob/main/LICENSE" className="text-muted hover:text-white transition-colors">License</a>
           </div>
         </div>
       </div>

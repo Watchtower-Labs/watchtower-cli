@@ -8,7 +8,7 @@ const navLinks = [
   { href: '#features', label: 'Features' },
   { href: '#how-it-works', label: 'How it Works' },
   { href: '#benefits', label: 'Benefits' },
-  { href: 'https://github.com', label: 'Docs' },
+  { href: '/docs', label: 'Docs' },
 ]
 
 export function Navigation() {
@@ -41,7 +41,7 @@ export function Navigation() {
 
           {/* CTA */}
           <div className="hidden md:block">
-            <Button size="sm">Get Started</Button>
+            <Button size="sm" href="/docs/quickstart">Get Started</Button>
           </div>
 
           {/* Mobile Menu Button */}
@@ -68,7 +68,7 @@ export function Navigation() {
                   {link.label}
                 </a>
               ))}
-              <Button size="sm" className="w-full mt-2">Get Started</Button>
+              <Button size="sm" className="w-full mt-2" href="/docs/quickstart">Get Started</Button>
             </div>
           </div>
         )}

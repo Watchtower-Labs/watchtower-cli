@@ -1,13 +1,25 @@
 'use client'
 
-import { forwardRef, ButtonHTMLAttributes } from 'react'
+import { forwardRef, ButtonHTMLAttributes, AnchorHTMLAttributes } from 'react'
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+type ButtonBaseProps = {
   variant?: 'primary' | 'secondary' | 'ghost'
   size?: 'sm' | 'md' | 'lg'
 }
 
-const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+type ButtonAsButton = ButtonBaseProps &
+  ButtonHTMLAttributes<HTMLButtonElement> & {
+    href?: undefined
+  }
+
+type ButtonAsAnchor = ButtonBaseProps &
+  AnchorHTMLAttributes<HTMLAnchorElement> & {
+    href: string
+  }
+
+type ButtonProps = ButtonAsButton | ButtonAsAnchor
+
+const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
   ({ className = '', variant = 'primary', size = 'md', children, ...props }, ref) => {
     const baseStyles = 'inline-flex items-center justify-center font-medium rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:pointer-events-none'
 
@@ -23,11 +35,29 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       lg: 'px-8 py-4 text-lg',
     }
 
+    const combinedClassName = `${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`
+
+    // If href is provided, render as anchor
+    if ('href' in props && props.href) {
+      const { href, ...anchorProps } = props as ButtonAsAnchor
+      return (
+        <a
+          ref={ref as React.Ref<HTMLAnchorElement>}
+          href={href}
+          className={combinedClassName}
+          {...anchorProps}
+        >
+          {children}
+        </a>
+      )
+    }
+
+    // Otherwise render as button
     return (
       <button
-        ref={ref}
-        className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
-        {...props}
+        ref={ref as React.Ref<HTMLButtonElement>}
+        className={combinedClassName}
+        {...(props as ButtonAsButton)}
       >
         {children}
       </button>

@@ -38,11 +38,11 @@ export function Hero() {
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="group">
+            <Button size="lg" className="group" href="/docs/quickstart">
               Get Started
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
-            <Button variant="secondary" size="lg">
+            <Button variant="secondary" size="lg" href="https://github.com/Watchtower-Labs/watchtower-cli">
               <Github className="mr-2 w-5 h-5" />
               View on GitHub
             </Button>

@@ -30,15 +30,15 @@ export function CTA() {
 
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button size="lg" className="group">
+          <Button size="lg" className="group" href="/docs/quickstart">
             Get Started
             <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </Button>
-          <Button variant="secondary" size="lg">
+          <Button variant="secondary" size="lg" href="/docs">
             <BookOpen className="mr-2 w-5 h-5" />
             Read the Docs
           </Button>
-          <Button variant="ghost" size="lg">
+          <Button variant="ghost" size="lg" href="https://github.com/Watchtower-Labs/watchtower-cli">
             <Github className="mr-2 w-5 h-5" />
             Star on GitHub
           </Button>
@@ -47,11 +47,11 @@ export function CTA() {
         {/* Install Command */}
         <div className="mt-12 inline-flex items-center gap-4 px-6 py-4 rounded-xl bg-white/5 border border-white/10">
           <code className="font-mono text-white">
-            pip install watchtower-sdk && npm i -g watchtower-cli
+            pip install watchtower-adk && npm i -g @watchtower/cli
           </code>
           <button
             className="text-muted hover:text-white transition-colors"
-            onClick={() => navigator.clipboard.writeText('pip install watchtower-sdk && npm i -g watchtower-cli')}
+            onClick={() => navigator.clipboard.writeText('pip install watchtower-adk && npm i -g @watchtower/cli')}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
