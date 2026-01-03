@@ -39,10 +39,10 @@ cloud = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/watchtower"
-Documentation = "https://github.com/yourusername/watchtower#readme"
-Repository = "https://github.com/yourusername/watchtower"
-Issues = "https://github.com/yourusername/watchtower/issues"
+Homepage = "https://github.com/Watchtower-Labs/watchtower-cli"
+Documentation = "https://github.com/Watchtower-Labs/watchtower-cli#readme"
+Repository = "https://github.com/Watchtower-Labs/watchtower-cli"
+Issues = "https://github.com/Watchtower-Labs/watchtower-cli/issues"
 
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]

@@ -2,7 +2,7 @@
 
 import sys
 import json
-from typing import TextIO, Dict, Any
+from typing import TextIO, Dict, Any, Optional
 
 
 class StdoutWriter:
@@ -15,7 +15,7 @@ class StdoutWriter:
     {"jsonrpc":"2.0","method":"<event.type>","params":{...event}}
     """
 
-    def __init__(self, stream: TextIO = None):
+    def __init__(self, stream: Optional[TextIO] = None):
         """Initialize stdout writer.
 
         Args:

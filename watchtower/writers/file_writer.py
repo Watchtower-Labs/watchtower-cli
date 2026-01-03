@@ -14,8 +14,10 @@ try:
 except ImportError:
     HAS_FCNTL = False
 
+from watchtower.writers.base import TraceWriter
 
-class FileWriter:
+
+class FileWriter(TraceWriter):
     """Writes trace events to JSONL files in ~/.watchtower/traces/
 
     File naming: {date}_{run_id}.jsonl
