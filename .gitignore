@@ -42,6 +42,3 @@ coverage
 # Misc
 *.pem
 
-# Markdown (except README)
-*.md
-!README.md
