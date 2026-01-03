@@ -1,11 +1,6 @@
-# ADK Observability SDK - System Design Document
+# Watchtower - ADK Observability SDK
+## System Design Document
 
-<<<<<<< Updated upstream
-**Project Name:** `watchtower`  
-**Version:** 0.1.0 (MVP)  
-**Date:** December 2024  
-**Stack:** Python SDK + TypeScript/Ink CLI  
-=======
 **Project Name:** `watchtower`
 **Version:** 0.1.0 (MVP)
 **Date:** December 2024
@@ -34,16 +29,10 @@
    - [7.1 Argument Sanitization](#71-argument-sanitization)
    - [7.2 File Permissions](#72-file-permissions)
    - [7.3 No Remote Transmission](#73-no-remote-transmission)
-8. [Extensibility & Framework Agnosticism](#8-extensibility--framework-agnosticism)
-   - [8.1 Design Philosophy](#81-design-philosophy)
-   - [8.2 Abstraction Layers](#82-abstraction-layers)
-   - [8.3 Universal Event Schema](#83-universal-event-schema)
-   - [8.4 Provider Adapter Interface](#84-provider-adapter-interface)
-   - [8.5 Configuration Strategy](#85-configuration-strategy)
-   - [8.6 Storage Backend Abstraction](#86-storage-backend-abstraction)
-   - [8.7 CLI Framework Agnosticism](#87-cli-framework-agnosticism)
-   - [8.8 Migration Path](#88-migration-path)
-   - [8.9 Implementation Checklist](#89-implementation-checklist-for-framework-agnosticism)
+8. [Future Considerations (Post-MVP)](#8-future-considerations-post-mvp)
+   - [8.1 Near-term Additions](#81-near-term-additions)
+   - [8.2 Medium-term Additions](#82-medium-term-additions)
+   - [8.3 Long-term Vision](#83-long-term-vision)
 9. [Cloud Deployment & Production Environments](#9-cloud-deployment--production-environments)
    - [9.1 Deployment Architecture](#91-deployment-architecture)
    - [9.2 Cloud Storage Backends](#92-cloud-storage-backends)
@@ -53,17 +42,12 @@
    - [9.6 Environment-Specific Configuration](#96-environment-specific-configuration)
    - [9.7 Performance & Cost Optimization](#97-performance--cost-optimization)
    - [9.8 Cloud Deployment Examples](#98-cloud-deployment-examples)
-10. [Future Considerations (Post-MVP)](#10-future-considerations-post-mvp)
-   - [10.1 Near-term Additions](#101-near-term-additions)
-   - [10.2 Medium-term Additions](#102-medium-term-additions)
-   - [10.3 Long-term Vision](#103-long-term-vision)
-11. [Implementation Plan](#11-implementation-plan)
-12. [Success Metrics](#12-success-metrics)
-13. [Appendices](#13-appendices)
+10. [Implementation Plan](#10-implementation-plan)
+11. [Success Metrics](#11-success-metrics)
+12. [Appendices](#12-appendices)
     - [Appendix A: Dependencies](#appendix-a-dependencies)
     - [Appendix B: Directory Structure](#appendix-b-directory-structure)
     - [Appendix C: Example Usage](#appendix-c-example-usage)
->>>>>>> Stashed changes
 
 ---
 
@@ -1384,7 +1368,965 @@ MVP is local-only. No data leaves the machine unless explicitly configured in fu
 
 ---
 
-## 9. Implementation Plan
+## 9. Cloud Deployment & Production Environments
+
+While the MVP focuses on local development, Watchtower is designed to support production deployments on Cloud Run, Kubernetes, AWS Lambda, and other cloud platforms. This section outlines the architecture and considerations for cloud deployments.
+
+### 9.1 Deployment Architecture
+
+#### 9.1.1 Current State: MVP Local-Only
+
+The MVP design assumes:
+- Traces saved to `~/.watchtower/traces/` on local filesystem
+- CLI reads from local directory
+- No network transmission of trace data
+
+**This doesn't work in cloud environments because:**
+- Cloud Run/Lambda containers have ephemeral storage
+- Multiple instances can't share a local filesystem
+- No way to access traces after container restarts
+- Can't tail live from deployed agents
+
+#### 9.1.2 Cloud Deployment Models
+
+**Model 1: Direct Cloud Storage** (Recommended for simplicity)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Cloud Run / GKE / Lambda                 │
+│  ┌────────────────────────────────────────────────────┐     │
+│  │  Agent Container                                    │     │
+│  │  ┌──────────────┐        ┌──────────────┐          │     │
+│  │  │ ADK Agent    │───────▶│ AgentTrace   │          │     │
+│  │  │              │        │ Plugin       │          │     │
+│  │  └──────────────┘        └──────┬───────┘          │     │
+│  │                                 │ Writes events    │     │
+│  └─────────────────────────────────┼──────────────────┘     │
+└────────────────────────────────────┼────────────────────────┘
+                                     │
+                                     ▼
+                    ┌────────────────────────────────┐
+                    │   Cloud Storage Backend        │
+                    │  • Google Cloud Storage (GCS)  │
+                    │  • AWS S3                      │
+                    │  • PostgreSQL + TimescaleDB    │
+                    └────────────────┬───────────────┘
+                                     │ Reads via API
+                                     ▼
+                    ┌────────────────────────────────┐
+                    │   Developer Machine            │
+                    │   watchtower CLI               │
+                    │   • show --remote gs://...     │
+                    │   • list --remote gs://...     │
+                    └────────────────────────────────┘
+```
+
+**Pros:**
+- Simple architecture
+- No additional services needed
+- Low cost (just storage)
+- Works with existing CLI (add `--remote` flag)
+
+**Cons:**
+- No real-time tailing (need polling)
+- Higher latency for reads
+- Eventual consistency issues
+
+**Model 2: HTTP Streaming Gateway** (For real-time access)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Cloud Run Service                        │
+│  ┌────────────────────────────────────────────────────┐     │
+│  │  Agent Container                                    │     │
+│  │  ┌──────────────┐        ┌──────────────┐          │     │
+│  │  │ ADK Agent    │───────▶│ AgentTrace   │          │     │
+│  │  │              │        │ Plugin       │          │     │
+│  │  └──────────────┘        └──────┬───────┘          │     │
+│  │                                 │ Emits events     │     │
+│  │                         ┌───────▼────────┐         │     │
+│  │                         │ HTTP Gateway   │◀────────┼─────┤ :8080/traces/stream
+│  │                         │ (FastAPI/SSE)  │         │     │
+│  │                         └────────┬───────┘         │     │
+│  │                                 │ Also persists    │     │
+│  │                                 ▼                  │     │
+│  │                         ┌────────────────┐         │     │
+│  │                         │  GCS / Postgres │         │     │
+│  └────────────────────────────────────────────────────┘     │
+└─────────────────────────────────────────────────────────────┘
+                                     ▲
+                                     │ SSE/WebSocket
+                                     │
+                    ┌────────────────────────────────┐
+                    │   Developer Machine            │
+                    │   watchtower tail --remote     │
+                    │   https://my-agent.run.app     │
+                    └────────────────────────────────┘
+```
+
+**Pros:**
+- Real-time streaming
+- Low latency
+- Better developer experience
+
+**Cons:**
+- More complex (need gateway service)
+- Higher cost (compute + storage)
+- Requires authentication
+
+**Model 3: Hybrid** (Cloud storage + Optional HTTP)
+
+Agents always write to cloud storage (durable), optionally also emit to HTTP gateway for real-time access.
+
+#### 9.1.3 Architecture Decision Matrix
+
+| Requirement | Model 1 (Storage) | Model 2 (HTTP) | Model 3 (Hybrid) |
+|-------------|-------------------|----------------|------------------|
+| Real-time tailing | ❌ No (polling) | ✅ Yes | ✅ Yes |
+| Historical queries | ✅ Yes | ⚠️ Needs DB | ✅ Yes |
+| Multi-instance support | ✅ Yes | ✅ Yes | ✅ Yes |
+| Implementation complexity | Low | High | Medium |
+| Cost (100k events/day) | ~$2/mo | ~$50/mo | ~$25/mo |
+| Latency | High (5-10s) | Low (<100ms) | Low |
+| **MVP+1 Recommendation** | **✅ Start here** | Phase 2 | Phase 3 |
+
+### 9.2 Cloud Storage Backends
+
+#### 9.2.1 Google Cloud Storage Writer
+
+```python
+# watchtower/writers/gcs_writer.py
+from google.cloud import storage
+from watchtower.writers.base import TraceWriter
+import json
+from datetime import datetime
+from typing import Optional
+import os
+
+class GCSWriter(TraceWriter):
+    """
+    Writes trace events to Google Cloud Storage.
+
+    File structure: gs://{bucket}/traces/{date}/{run_id}.jsonl
+    Example: gs://my-bucket/traces/2024-01-15/abc123.jsonl
+    """
+
+    def __init__(
+        self,
+        bucket_name: str,
+        project: Optional[str] = None,
+        prefix: str = "traces",
+        buffer_size: int = 50,  # Buffer more for network efficiency
+    ):
+        self.client = storage.Client(project=project)
+        self.bucket = self.client.bucket(bucket_name)
+        self.prefix = prefix
+        self._buffer: list = []
+        self._buffer_size = buffer_size
+        self._current_run_id: Optional[str] = None
+
+    def _get_blob_path(self, run_id: str) -> str:
+        """Generate GCS blob path for this run."""
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        return f"{self.prefix}/{date_str}/{run_id}.jsonl"
+
+    def write(self, event: dict) -> None:
+        """Buffer event for batch upload."""
+        self._buffer.append(event)
+        self._current_run_id = event.get("run_id", "unknown")
+
+        if len(self._buffer) >= self._buffer_size:
+            self._flush_buffer()
+
+    def _flush_buffer(self) -> None:
+        """Upload buffered events to GCS."""
+        if not self._buffer or not self._current_run_id:
+            return
+
+        blob_path = self._get_blob_path(self._current_run_id)
+        blob = self.bucket.blob(blob_path)
+
+        # Read existing content if file exists
+        existing_content = ""
+        if blob.exists():
+            existing_content = blob.download_as_text()
+
+        # Append new events
+        new_lines = "\n".join(
+            json.dumps(event, separators=(',', ':'), default=str)
+            for event in self._buffer
+        )
+
+        updated_content = existing_content + new_lines + "\n" if existing_content else new_lines + "\n"
+
+        # Upload with retries
+        blob.upload_from_string(
+            updated_content,
+            content_type="application/x-ndjson",
+            retry=storage.retry.DEFAULT_RETRY
+        )
+
+        self._buffer.clear()
+
+    def flush(self) -> None:
+        """Force flush remaining events."""
+        self._flush_buffer()
+```
+
+**Usage in agent:**
+
+```python
+import os
+from watchtower import AgentTracePlugin
+from watchtower.writers.gcs_writer import GCSWriter
+
+# Detect environment and choose writer
+if os.getenv("K_SERVICE"):  # Cloud Run
+    writer = GCSWriter(
+        bucket_name=os.getenv("GCS_TRACES_BUCKET", "my-project-traces"),
+        project=os.getenv("GOOGLE_CLOUD_PROJECT")
+    )
+    plugin = AgentTracePlugin(writers=[writer])
+else:  # Local development
+    plugin = AgentTracePlugin()  # Uses FileWriter by default
+
+runner = InMemoryRunner(agent=agent, plugins=[plugin])
+```
+
+#### 9.2.2 AWS S3 Writer
+
+```python
+# watchtower/writers/s3_writer.py
+import boto3
+from watchtower.writers.base import TraceWriter
+import json
+from datetime import datetime
+from typing import Optional
+
+class S3Writer(TraceWriter):
+    """
+    Writes trace events to AWS S3.
+
+    File structure: s3://{bucket}/traces/{date}/{run_id}.jsonl
+    """
+
+    def __init__(
+        self,
+        bucket_name: str,
+        region: str = "us-east-1",
+        prefix: str = "traces",
+        buffer_size: int = 50,
+    ):
+        self.s3 = boto3.client('s3', region_name=region)
+        self.bucket_name = bucket_name
+        self.prefix = prefix
+        self._buffer: list = []
+        self._buffer_size = buffer_size
+        self._current_run_id: Optional[str] = None
+
+    def _get_s3_key(self, run_id: str) -> str:
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        return f"{self.prefix}/{date_str}/{run_id}.jsonl"
+
+    def write(self, event: dict) -> None:
+        self._buffer.append(event)
+        self._current_run_id = event.get("run_id", "unknown")
+
+        if len(self._buffer) >= self._buffer_size:
+            self._flush_buffer()
+
+    def _flush_buffer(self) -> None:
+        if not self._buffer or not self._current_run_id:
+            return
+
+        s3_key = self._get_s3_key(self._current_run_id)
+
+        # Download existing content
+        existing_content = ""
+        try:
+            response = self.s3.get_object(Bucket=self.bucket_name, Key=s3_key)
+            existing_content = response['Body'].read().decode('utf-8')
+        except self.s3.exceptions.NoSuchKey:
+            pass
+
+        # Append new events
+        new_lines = "\n".join(
+            json.dumps(event, separators=(',', ':'), default=str)
+            for event in self._buffer
+        )
+
+        updated_content = existing_content + new_lines + "\n" if existing_content else new_lines + "\n"
+
+        # Upload
+        self.s3.put_object(
+            Bucket=self.bucket_name,
+            Key=s3_key,
+            Body=updated_content.encode('utf-8'),
+            ContentType='application/x-ndjson'
+        )
+
+        self._buffer.clear()
+
+    def flush(self) -> None:
+        self._flush_buffer()
+```
+
+#### 9.2.3 PostgreSQL Writer (with TimescaleDB)
+
+For high-query scenarios (analytics, searching across runs):
+
+```python
+# watchtower/writers/postgres_writer.py
+import asyncpg
+from watchtower.writers.base import TraceWriter
+import json
+from typing import Optional
+
+class PostgresWriter(TraceWriter):
+    """
+    Writes trace events to PostgreSQL with TimescaleDB for time-series optimization.
+
+    Schema:
+    CREATE TABLE traces (
+        id BIGSERIAL,
+        run_id TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        timestamp TIMESTAMPTZ NOT NULL,
+        data JSONB NOT NULL,
+        PRIMARY KEY (timestamp, id)
+    );
+
+    -- Convert to hypertable for time-series optimization
+    SELECT create_hypertable('traces', 'timestamp');
+
+    -- Indexes
+    CREATE INDEX idx_traces_run_id ON traces(run_id);
+    CREATE INDEX idx_traces_type ON traces(event_type);
+    CREATE INDEX idx_traces_data_gin ON traces USING GIN(data);
+    """
+
+    def __init__(
+        self,
+        dsn: str,
+        buffer_size: int = 20,
+    ):
+        self.dsn = dsn
+        self.pool: Optional[asyncpg.Pool] = None
+        self._buffer: list = []
+        self._buffer_size = buffer_size
+
+    async def initialize(self):
+        """Initialize connection pool."""
+        self.pool = await asyncpg.create_pool(self.dsn, min_size=1, max_size=10)
+
+    def write(self, event: dict) -> None:
+        """Buffer event for batch insert."""
+        self._buffer.append(event)
+
+        if len(self._buffer) >= self._buffer_size:
+            # Schedule async flush
+            import asyncio
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(self._flush_buffer())
+            except RuntimeError:
+                # No running loop, skip flush (will flush on next write)
+                pass
+
+    async def _flush_buffer(self) -> None:
+        """Batch insert buffered events."""
+        if not self._buffer or not self.pool:
+            return
+
+        events = self._buffer.copy()
+        self._buffer.clear()
+
+        async with self.pool.acquire() as conn:
+            await conn.executemany(
+                """
+                INSERT INTO traces (run_id, event_type, timestamp, data)
+                VALUES ($1, $2, to_timestamp($3), $4)
+                """,
+                [
+                    (
+                        event.get("run_id"),
+                        event.get("type"),
+                        event.get("timestamp"),
+                        json.dumps(event),
+                    )
+                    for event in events
+                ]
+            )
+
+    async def flush(self) -> None:
+        """Force flush remaining events."""
+        await self._flush_buffer()
+```
+
+### 9.3 Remote Access Patterns
+
+#### 9.3.1 CLI Remote Mode
+
+**Enhanced CLI commands:**
+
+```bash
+# View traces from cloud storage
+watchtower show --remote gs://my-bucket/traces last
+watchtower show --remote s3://my-bucket/traces 2024-01-15_abc123
+
+# List remote traces
+watchtower list --remote gs://my-bucket/traces --limit 50
+
+# Live tail from HTTP gateway (future)
+watchtower tail --remote https://my-agent.run.app --auth-token $TOKEN
+```
+
+**Implementation:**
+
+```typescript
+// cli/src/lib/remote.ts
+import {Storage} from '@google-cloud/storage';
+import {S3} from '@aws-sdk/client-s3';
+import * as readline from 'readline';
+import {TraceEvent} from './types.js';
+
+export interface RemoteConfig {
+  type: 'gcs' | 's3' | 'postgres';
+  uri: string;
+}
+
+export class RemoteTraceReader {
+  constructor(private config: RemoteConfig) {}
+
+  async *readTrace(runId: string): AsyncGenerator<TraceEvent> {
+    switch (this.config.type) {
+      case 'gcs':
+        yield* this.readFromGCS(runId);
+        break;
+      case 's3':
+        yield* this.readFromS3(runId);
+        break;
+      default:
+        throw new Error(`Unsupported remote type: ${this.config.type}`);
+    }
+  }
+
+  private async *readFromGCS(runId: string): AsyncGenerator<TraceEvent> {
+    const storage = new Storage();
+    const match = this.config.uri.match(/gs:\/\/([^\/]+)\/(.*)/);
+    if (!match) throw new Error('Invalid GCS URI');
+
+    const [, bucket, prefix] = match;
+
+    // List files matching run_id pattern (handles multi-instance)
+    const [files] = await storage.bucket(bucket).getFiles({
+      prefix: `${prefix}/`,
+      matchGlob: `**/*${runId}*.jsonl`
+    });
+
+    for (const file of files) {
+      const stream = file.createReadStream();
+      const rl = readline.createInterface({input: stream});
+
+      for await (const line of rl) {
+        try {
+          yield JSON.parse(line) as TraceEvent;
+        } catch {
+          // Skip malformed lines
+        }
+      }
+    }
+  }
+
+  private async *readFromS3(runId: string): AsyncGenerator<TraceEvent> {
+    // Similar implementation for S3
+    // ...
+  }
+}
+```
+
+**Update show command:**
+
+```typescript
+// cli/src/commands/show.tsx
+export const ShowCommand: React.FC<ShowCommandProps> = ({trace, remote}) => {
+  const {events, summary, loading, error} = remote
+    ? useRemoteTrace(trace, remote)
+    : useTraceFile(trace);
+
+  // Rest of component unchanged
+  // ...
+};
+```
+
+### 9.4 Authentication & Authorization
+
+#### 9.4.1 Service Account for GCS (Cloud Run)
+
+```yaml
+# cloudrun-service.yaml
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: my-agent
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/service-account: agent-traces@project.iam.gserviceaccount.com
+    spec:
+      containers:
+      - image: gcr.io/project/my-agent
+        env:
+        - name: GCS_TRACES_BUCKET
+          value: my-project-traces
+```
+
+**Grant permissions:**
+
+```bash
+# Give service account write access to bucket
+gcloud storage buckets add-iam-policy-binding gs://my-project-traces \
+  --member=serviceAccount:agent-traces@project.iam.gserviceaccount.com \
+  --role=roles/storage.objectCreator
+
+# Give developers read access
+gcloud storage buckets add-iam-policy-binding gs://my-project-traces \
+  --member=group:developers@company.com \
+  --role=roles/storage.objectViewer
+```
+
+#### 9.4.2 IAM for AWS Lambda
+
+```yaml
+# lambda-execution-role.yaml
+Resources:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: TracesS3Access
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                Resource: arn:aws:s3:::lambda-traces-bucket/traces/*
+```
+
+### 9.5 Multi-Instance Coordination
+
+#### 9.5.1 Run ID Generation for Cloud
+
+```python
+import uuid
+import os
+import socket
+
+def generate_cloud_run_id() -> str:
+    """
+    Generate unique run ID for cloud environments.
+    Format: {instance_id}_{invocation_id}
+
+    Examples:
+    - Cloud Run: kr8s-abc_def123
+    - Lambda: lambda-xyz_ghi456
+    - K8s: pod-name_jkl789
+    """
+    # Get instance identifier from environment
+    instance_id = (
+        os.getenv("K_REVISION", "")[:8] or  # Cloud Run
+        os.getenv("AWS_LAMBDA_LOG_STREAM_NAME", "")[:8] or  # Lambda
+        os.getenv("HOSTNAME", socket.gethostname())[:8]  # K8s/Docker
+    ).replace("-", "")
+
+    # Unique invocation ID
+    invocation_id = str(uuid.uuid4())[:8]
+
+    return f"{instance_id}_{invocation_id}"
+```
+
+#### 9.5.2 Trace Aggregation (CLI)
+
+When reading from cloud storage, handle multiple files for same run:
+
+```typescript
+// Handle pattern: gs://bucket/traces/2024-01-15/*_abc123.jsonl
+async function readAggregatedTrace(runId: string, bucket: string): Promise<TraceEvent[]> {
+  const storage = new Storage();
+
+  // Find all files matching run_id suffix
+  const [files] = await storage.bucket(bucket).getFiles({
+    prefix: 'traces/',
+    matchGlob: `**/*_${runId}.jsonl`
+  });
+
+  const allEvents: TraceEvent[] = [];
+
+  for (const file of files) {
+    const events = await readJSONLFile(file);
+    allEvents.push(...events);
+  }
+
+  // Sort by timestamp for coherent timeline
+  allEvents.sort((a, b) => a.timestamp - b.timestamp);
+
+  return allEvents;
+}
+```
+
+### 9.6 Environment-Specific Configuration
+
+#### 9.6.1 Auto-Detection
+
+```python
+# watchtower/config.py
+import os
+from dataclasses import dataclass
+from typing import Optional, List
+from watchtower.writers.base import TraceWriter
+
+@dataclass
+class WatchtowerConfig:
+    """Auto-configured based on deployment environment."""
+
+    writers: List[TraceWriter]
+    run_id_generator: callable
+
+    @classmethod
+    def from_environment(cls) -> "WatchtowerConfig":
+        """Auto-detect configuration from environment."""
+
+        # Cloud Run
+        if os.getenv("K_SERVICE"):
+            from watchtower.writers.gcs_writer import GCSWriter
+            return cls(
+                writers=[GCSWriter(
+                    bucket_name=os.getenv("GCS_TRACES_BUCKET",
+                                         f"{os.getenv('GOOGLE_CLOUD_PROJECT')}-traces")
+                )],
+                run_id_generator=generate_cloud_run_id
+            )
+
+        # AWS Lambda
+        elif os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+            from watchtower.writers.s3_writer import S3Writer
+            return cls(
+                writers=[S3Writer(
+                    bucket_name=os.getenv("S3_TRACES_BUCKET",
+                                         f"lambda-traces-{os.getenv('AWS_REGION')}")
+                )],
+                run_id_generator=generate_cloud_run_id
+            )
+
+        # Kubernetes
+        elif os.getenv("KUBERNETES_SERVICE_HOST"):
+            # Could use GCS, S3, or Postgres depending on cloud provider
+            storage_url = os.getenv("WATCHTOWER_STORAGE")
+            if storage_url.startswith("gs://"):
+                from watchtower.writers.gcs_writer import GCSWriter
+                bucket = storage_url.replace("gs://", "").split("/")[0]
+                return cls(
+                    writers=[GCSWriter(bucket_name=bucket)],
+                    run_id_generator=generate_cloud_run_id
+                )
+            # ... handle other storage types
+
+        # Local development (default)
+        else:
+            from watchtower.writers.file_writer import FileWriter
+            return cls(
+                writers=[FileWriter("~/.watchtower/traces")],
+                run_id_generator=lambda: str(uuid.uuid4())[:8]
+            )
+
+# Simple usage in agent
+from watchtower import AgentTracePlugin
+from watchtower.config import WatchtowerConfig
+
+config = WatchtowerConfig.from_environment()
+plugin = AgentTracePlugin(
+    writers=config.writers,
+    run_id=config.run_id_generator()
+)
+```
+
+### 9.7 Performance & Cost Optimization
+
+#### 9.7.1 Cost Comparison
+
+**Storage Costs** (per month, 1M events @ 20KB each = 20GB):
+
+| Backend | Storage Cost | Operations Cost | Total/Month | Notes |
+|---------|--------------|-----------------|-------------|-------|
+| GCS Standard | $0.40 | $0.05 (writes) | **$0.45** | Best for cold storage |
+| GCS Nearline | $0.20 | $0.10 (writes) | $0.30 | 30-day min |
+| S3 Standard | $0.46 | $0.05 (writes) | **$0.51** | Similar to GCS |
+| S3 Intelligent-Tier | $0.30 | $0.05 | $0.35 | Auto-archives |
+| PostgreSQL (Cloud SQL) | $122/mo (instance) | N/A | **$122** | Best for queries |
+| TimescaleDB (self-hosted) | $20-50 | N/A | $20-50 | Cost-effective at scale |
+
+**Recommendations:**
+- **Low volume (<10k events/day):** GCS/S3 Standard
+- **Medium volume (<100k/day):** GCS Nearline + Postgres for recent data
+- **High volume (>100k/day):** TimescaleDB with auto-archival to GCS
+
+#### 9.7.2 Retention & Cleanup
+
+```python
+# watchtower/cleanup.py
+from google.cloud import storage
+from datetime import datetime, timedelta
+
+def cleanup_old_traces(bucket_name: str, retention_days: int = 30):
+    """Delete traces older than retention period."""
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    cutoff_date = datetime.now() - timedelta(days=retention_days)
+
+    # List and delete old files
+    for blob in bucket.list_blobs(prefix="traces/"):
+        # Extract date from path: traces/2024-01-15/run.jsonl
+        try:
+            date_str = blob.name.split("/")[1]
+            file_date = datetime.strptime(date_str, "%Y-%m-%d")
+
+            if file_date < cutoff_date:
+                blob.delete()
+                print(f"Deleted: {blob.name}")
+        except (IndexError, ValueError):
+            continue
+
+# Run as scheduled Cloud Function or Cloud Scheduler job
+# gcloud scheduler jobs create http cleanup-traces \
+#   --schedule="0 2 * * *" \
+#   --uri="https://cleanup-function.run.app/cleanup"
+```
+
+#### 9.7.3 Adaptive Buffering
+
+```python
+class AdaptiveBufferWriter:
+    """Adjust buffer size based on write latency."""
+
+    def __init__(self, base_writer: TraceWriter):
+        self.writer = base_writer
+        self.buffer_size = 10
+        self.max_buffer_size = 100
+        self._latencies: List[float] = []
+
+    def write(self, event: dict):
+        start = time.perf_counter()
+        self.writer.write(event)
+        latency = time.perf_counter() - start
+
+        self._latencies.append(latency)
+
+        # Adjust every 10 writes
+        if len(self._latencies) >= 10:
+            avg_latency = sum(self._latencies) / len(self._latencies)
+
+            # High latency (>100ms) = buffer more to reduce writes
+            if avg_latency > 0.1:
+                self.buffer_size = min(self.buffer_size + 10, self.max_buffer_size)
+
+            # Low latency (<10ms) = buffer less for real-time
+            elif avg_latency < 0.01:
+                self.buffer_size = max(self.buffer_size - 5, 10)
+
+            self._latencies.clear()
+```
+
+### 9.8 Cloud Deployment Examples
+
+#### 9.8.1 Complete Cloud Run Example
+
+**main.py:**
+
+```python
+import os
+from google.adk.agents import Agent
+from google.adk.runners import InMemoryRunner
+from watchtower import AgentTracePlugin
+from watchtower.config import WatchtowerConfig
+from fastapi import FastAPI
+
+# Auto-configure based on environment
+config = WatchtowerConfig.from_environment()
+
+agent = Agent(
+    name="production_agent",
+    model="gemini-2.0-flash",
+    instruction="Production agent with cloud observability",
+    tools=[...],
+)
+
+runner = InMemoryRunner(
+    agent=agent,
+    app_name="prod_app",
+    plugins=[AgentTracePlugin(
+        writers=config.writers,
+        run_id=config.run_id_generator()
+    )],
+)
+
+app = FastAPI()
+
+@app.post("/chat")
+async def chat(message: str):
+    result = []
+    async for event in runner.run_async("user", "session", message):
+        result.append(event.content)
+    return {"response": "".join(result)}
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", 8080))
+    uvicorn.run(app, host="0.0.0.0", port=port)
+```
+
+**Dockerfile:**
+
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+CMD ["python", "main.py"]
+```
+
+**Deploy:**
+
+```bash
+# Create GCS bucket for traces
+gsutil mb gs://my-project-traces
+
+# Deploy to Cloud Run
+gcloud run deploy my-agent \
+  --source . \
+  --region us-central1 \
+  --set-env-vars GCS_TRACES_BUCKET=my-project-traces \
+  --service-account agent-traces@my-project.iam.gserviceaccount.com \
+  --allow-unauthenticated
+```
+
+**Access traces:**
+
+```bash
+# View latest trace
+watchtower show --remote gs://my-project-traces/traces last
+
+# List all traces
+watchtower list --remote gs://my-project-traces/traces --limit 20
+```
+
+#### 9.8.2 Kubernetes Deployment
+
+```yaml
+# k8s/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: agent
+  template:
+    metadata:
+      labels:
+        app: agent
+    spec:
+      serviceAccountName: agent-sa
+      containers:
+      - name: agent
+        image: my-agent:latest
+        env:
+        - name: WATCHTOWER_STORAGE
+          value: gs://k8s-cluster-traces/watchtower
+        - name: GOOGLE_CLOUD_PROJECT
+          value: my-project
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+```
+
+```yaml
+# k8s/service-account.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agent-sa
+  annotations:
+    iam.gke.io/gcp-service-account: agent-traces@my-project.iam.gserviceaccount.com
+```
+
+#### 9.8.3 AWS Lambda Example
+
+```python
+# lambda_function.py
+import os
+from watchtower import AgentTracePlugin
+from watchtower.writers.s3_writer import S3Writer
+
+# Lambda handler
+def lambda_handler(event, context):
+    # Configure watchtower for Lambda
+    plugin = AgentTracePlugin(
+        writers=[S3Writer(
+            bucket_name=os.getenv("S3_TRACES_BUCKET"),
+            region=os.getenv("AWS_REGION")
+        )],
+        run_id=f"lambda_{context.request_id[:8]}"
+    )
+
+    # Setup agent with plugin
+    runner = InMemoryRunner(agent=agent, plugins=[plugin])
+
+    # Run agent
+    # ...
+```
+
+**Terraform:**
+
+```hcl
+resource "aws_s3_bucket" "traces" {
+  bucket = "lambda-traces-bucket"
+}
+
+resource "aws_iam_role_policy" "lambda_s3" {
+  role = aws_iam_role.lambda_exec.id
+
+  policy = jsonencode({
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "s3:PutObject",
+        "s3:GetObject"
+      ]
+      Resource = "${aws_s3_bucket.traces.arn}/traces/*"
+    }]
+  })
+}
+```
+
+---
+
+## 10. Implementation Plan
 
 ### Phase 1: SDK Core (Week 1-2)
 
