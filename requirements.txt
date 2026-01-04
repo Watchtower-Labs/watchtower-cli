@@ -1,0 +1,2 @@
+# Minimal runtime dependencies for watchtower SDK
+google-adk>=0.1.0
