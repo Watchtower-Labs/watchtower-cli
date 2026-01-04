@@ -1,7 +1,6 @@
 """Test watchtower SDK with real web search."""
 
 import asyncio
-import sys
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -9,18 +8,8 @@ from types import SimpleNamespace
 from watchtower import AgentTracePlugin
 
 # Import for web scraping
-try:
-    import requests
-    from bs4 import BeautifulSoup
-    HAS_REQUESTS = True
-except ImportError:
-    HAS_REQUESTS = False
-    print("Installing requests and beautifulsoup4...")
-    import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "requests", "beautifulsoup4"])
-    import requests
-    from bs4 import BeautifulSoup
-    HAS_REQUESTS = True
+import requests
+from bs4 import BeautifulSoup
 
 
 class RealSearchTool:
@@ -32,9 +21,6 @@ class RealSearchTool:
 
     def __call__(self, query: str) -> dict:
         """Perform actual web search."""
-        if not HAS_REQUESTS:
-            return {"success": False, "error": "requests not available", "results": []}
-
         try:
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -205,7 +191,6 @@ async def test_real_search():
             for i, line in enumerate(f, 1):
                 event = json.loads(line)
                 event_type = event.get('type', 'unknown')
-                timestamp = event.get('timestamp', 0)
 
                 if event_type == 'llm.response':
                     tokens = event.get('total_tokens', 0)
