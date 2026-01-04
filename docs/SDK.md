@@ -482,6 +482,72 @@ trace_path = plugin.get_trace_path()
 print(f"Trace saved to: {trace_path}")
 ```
 
+## Testing
+
+### Running Unit Tests
+
+The SDK includes comprehensive unit tests covering all core functionality:
+
+```bash
+# Install dev dependencies
+pip install -e ".[dev]"
+
+# Run all unit tests
+pytest tests/test_basic.py -v
+
+# Run specific test
+pytest tests/test_basic.py::test_sanitize_args -v
+
+# Run with coverage
+pip install pytest-cov
+pytest tests/ --cov=watchtower --cov-report=html
+```
+
+### Integration Testing
+
+Test the SDK with real web searches:
+
+```bash
+# Run integration test with actual DuckDuckGo search
+python tests/test_real_search.py
+```
+
+This test:
+- Creates a real `AgentTracePlugin` instance
+- Performs actual web searches via DuckDuckGo
+- Captures all trace events (run, llm, tool)
+- Generates a complete trace file
+- Displays results and trace summary
+
+### Manual Testing
+
+Create a simple test script:
+
+```python
+import asyncio
+from types import SimpleNamespace
+from watchtower import AgentTracePlugin
+
+async def test():
+    plugin = AgentTracePlugin()
+
+    # Simulate run
+    ctx = SimpleNamespace(
+        invocation_id="test_001",
+        agent=SimpleNamespace(name="test_agent")
+    )
+    await plugin.before_run_callback(invocation_context=ctx)
+    await plugin.after_run_callback(invocation_context=ctx)
+
+    # Check trace file
+    trace_path = plugin.file_writer.get_trace_path()
+    print(f"Trace: {trace_path}")
+
+asyncio.run(test())
+```
+
+---
+
 ## Troubleshooting
 
 ### Traces Not Being Created
