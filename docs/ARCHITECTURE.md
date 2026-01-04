@@ -42,8 +42,10 @@ watchtower-cli/
 │   ├── cli/              # TypeScript CLI (cli branch)
 │   └── web/              # Next.js landing page (main branch)
 ├── watchtower/           # Python SDK (feature/phase1-sdk-core branch)
-├── examples/             # SDK usage examples
-└── tests/                # SDK tests
+├── tests/                # SDK unit and integration tests
+│   ├── test_basic.py         # Unit tests for core components
+│   └── test_real_search.py   # Integration test with real web search
+└── docs/                 # Documentation (SDK, CLI, Architecture)
 ```
 
 ## Architecture Diagram

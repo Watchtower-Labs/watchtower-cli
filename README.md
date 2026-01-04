@@ -373,6 +373,43 @@ All data stays on your machine. No external services, no telemetry, no network c
 2. Try a different theme: `theme: minimal` in `~/.watchtower/cli.yaml`
 3. Check terminal width (minimum 60 columns recommended)
 
+## Testing
+
+### Unit Tests
+
+Run the comprehensive unit test suite:
+
+```bash
+# Install dev dependencies
+pip install -e ".[dev]"
+
+# Run all unit tests
+pytest tests/test_basic.py -v
+
+# Run with coverage
+pytest tests/ --cov=watchtower --cov-report=html
+```
+
+**Tests cover:**
+- Event creation and serialization
+- File writer (JSONL output)
+- Stdout writer (JSON-RPC format)
+- Event collector (statistics)
+- Argument sanitization
+- Event normalization
+
+### Integration Test
+
+Test with real web searches:
+
+```bash
+python tests/test_real_search.py
+```
+
+This performs actual DuckDuckGo web searches and generates complete trace files with real data.
+
+---
+
 ## Requirements
 
 ### Python SDK
@@ -426,8 +463,11 @@ source venv/bin/activate  # or `venv\Scripts\activate` on Windows
 # Install in development mode
 pip install -e ".[dev]"
 
-# Run tests
-pytest
+# Run unit tests
+pytest tests/test_basic.py -v
+
+# Run integration test with real web search
+python tests/test_real_search.py
 ```
 
 See [CONTRIBUTING.md](https://github.com/Watchtower-Labs/watchtower-cli/blob/main/CONTRIBUTING.md) for development guidelines.
