@@ -181,30 +181,33 @@ async def test_real_search():
     # Show trace file
     if plugin.file_writer:
         trace_path = plugin.file_writer.get_trace_path()
-        print(f"Trace saved to: {trace_path}")
-        print()
+        if trace_path is None:
+            print("Warning: Trace file path not available (file may not have been created yet)")
+        else:
+            print(f"Trace saved to: {trace_path}")
+            print()
 
-        # Display trace summary
-        print("Trace Events:")
-        with open(trace_path, 'r') as f:
-            import json
-            for i, line in enumerate(f, 1):
-                event = json.loads(line)
-                event_type = event.get('type', 'unknown')
+            # Display trace summary
+            print("Trace Events:")
+            with open(trace_path, 'r') as f:
+                import json
+                for i, line in enumerate(f, 1):
+                    event = json.loads(line)
+                    event_type = event.get('type', 'unknown')
 
-                if event_type == 'llm.response':
-                    tokens = event.get('total_tokens', 0)
-                    duration = event.get('duration_ms', 0)
-                    print(f"  {i}. {event_type:20} | {tokens:4} tokens | {duration:.0f}ms")
-                elif event_type == 'tool.end':
-                    duration = event.get('duration_ms', 0)
-                    tool = event.get('tool_name', 'unknown')
-                    print(f"  {i}. {event_type:20} | {tool:15} | {duration:.0f}ms")
-                elif event_type == 'run.end':
-                    summary = event.get('summary', {})
-                    print(f"  {i}. {event_type:20} | Summary: {summary}")
-                else:
-                    print(f"  {i}. {event_type}")
+                    if event_type == 'llm.response':
+                        tokens = event.get('total_tokens', 0)
+                        duration = event.get('duration_ms', 0)
+                        print(f"  {i}. {event_type:20} | {tokens:4} tokens | {duration:.0f}ms")
+                    elif event_type == 'tool.end':
+                        duration = event.get('duration_ms', 0)
+                        tool = event.get('tool_name', 'unknown')
+                        print(f"  {i}. {event_type:20} | {tool:15} | {duration:.0f}ms")
+                    elif event_type == 'run.end':
+                        summary = event.get('summary', {})
+                        print(f"  {i}. {event_type:20} | Summary: {summary}")
+                    else:
+                        print(f"  {i}. {event_type}")
 
     print()
     print("=" * 70)
