@@ -287,7 +287,7 @@ class AgentTracePlugin(BasePlugin):
         tool: BaseTool,
         tool_args: dict,
         tool_context: ToolContext,
-        tool_response: dict,
+        result: dict,
     ) -> Optional[dict]:
         """Hook called after tool execution completes.
 
@@ -295,7 +295,7 @@ class AgentTracePlugin(BasePlugin):
             tool: Tool that was executed
             tool_args: Tool arguments
             tool_context: Tool context
-            tool_response: Tool response
+            result: Tool result (renamed from tool_response in ADK API)
 
         Returns:
             Optional modified response (None for this plugin)
@@ -309,7 +309,7 @@ class AgentTracePlugin(BasePlugin):
                 tool_call_id=tool_context.state.get("_tool_call_id", "unknown"),
                 tool_name=getattr(tool, "name", "unknown"),
                 duration_ms=duration * 1000,
-                response_preview=truncate_response(tool_response),
+                response_preview=truncate_response(result),
                 success=True,
                 timestamp=time.time(),
             )

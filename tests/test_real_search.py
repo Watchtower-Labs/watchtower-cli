@@ -1,6 +1,7 @@
 """Test watchtower SDK with real web search."""
 
 import asyncio
+import os
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -66,14 +67,23 @@ async def test_real_search():
     print("=" * 70)
     print()
 
-    # Create plugin
+    # Debug: Check environment variables
+    is_live = os.environ.get("AGENTTRACE_LIVE") == "1"
+    print(f"[DEBUG] AGENTTRACE_LIVE: {os.environ.get('AGENTTRACE_LIVE')}")
+    print(f"[DEBUG] AGENTTRACE_RUN_ID: {os.environ.get('AGENTTRACE_RUN_ID')}")
+    print(f"[DEBUG] Live mode enabled: {is_live}")
+    print()
+
+    # Create plugin (with CLI live tail support)
     plugin = AgentTracePlugin(
         trace_dir="~/.watchtower/traces",
         enable_file=True,
-        enable_stdout=False,
+        enable_stdout=is_live,
+        run_id=os.environ.get("AGENTTRACE_RUN_ID"),
     )
 
     print(f"Run ID: {plugin.run_id}")
+    print(f"[DEBUG] Stdout writer enabled: {plugin.stdout_writer is not None}")
     print()
 
     # Create search tool

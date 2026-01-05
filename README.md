@@ -238,10 +238,10 @@ plugin = AgentTracePlugin(
 
 | Variable | Description |
 |----------|-------------|
-| `AGENTTRACE_DIR` | Override trace directory |
-| `AGENTTRACE_LIVE` | Enable stdout streaming (set by CLI) |
-| `AGENTTRACE_RUN_ID` | Override run ID (set by CLI) |
-| `AGENTTRACE_DISABLE` | Disable all tracing |
+| `WATCHTOWER_TRACE_DIR` | Override trace directory |
+| `WATCHTOWER_LIVE` | Enable stdout streaming (set by CLI) |
+| `WATCHTOWER_RUN_ID` | Override run ID (set by CLI) |
+| `WATCHTOWER_CONFIG_DIR` | Override config directory |
 
 ### CLI-Spawned Mode
 
@@ -252,8 +252,8 @@ import os
 from watchtower import AgentTracePlugin
 
 plugin = AgentTracePlugin(
-    enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1",
-    run_id=os.environ.get("AGENTTRACE_RUN_ID"),
+    enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1",
+    run_id=os.environ.get("WATCHTOWER_RUN_ID"),
 )
 ```
 
@@ -294,7 +294,7 @@ max_response_preview: 500
 ```yaml
 theme: dark              # dark | light | minimal
 max_events: 1000         # Max events to display
-timestamp_format: relative  # relative | absolute | unix
+timestampFormat: relative  # relative | absolute | unix
 default_python: python3  # Python executable for tail
 ```
 
@@ -353,9 +353,9 @@ All data stays on your machine. No external services, no telemetry, no network c
    ls ~/.watchtower/traces/
    ```
 
-3. Ensure tracing isn't disabled:
+3. Check the plugin is writing to the expected directory:
    ```bash
-   echo $AGENTTRACE_DISABLE  # Should be empty or unset
+   echo $WATCHTOWER_TRACE_DIR  # Override location, or empty for default
    ```
 
 ### Live tail not streaming events
@@ -364,7 +364,7 @@ All data stays on your machine. No external services, no telemetry, no network c
 
 2. Verify stdout streaming is enabled in your script:
    ```python
-   enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1"
+   enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1"
    ```
 
 ### CLI not rendering properly
