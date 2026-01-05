@@ -10,6 +10,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from google.adk.agents import Agent
 from google.adk.runners import InMemoryRunner
+from google.adk.models.lite_llm import LiteLlm
 from google.genai.types import Content, Part
 from watchtower import AgentTracePlugin
 
@@ -45,10 +46,10 @@ async def main():
     print()
 
     # Create agent with tools to show full lifecycle
-    # Using gemini-1.5-flash which might have quota available
+    # Using ChatGPT via LiteLLM to bypass Gemini quota
     agent = Agent(
         name="minimal_agent",
-        model="gemini-1.5-flash",
+        model=LiteLlm(model="gpt-4o-mini"),  # Fast and cheap OpenAI model
         instruction="You are a helpful assistant. Use the calculator and time tools when appropriate.",
         tools=[calculator, get_time],
     )
