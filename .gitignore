@@ -43,9 +43,7 @@ coverage
 # Misc
 *.pem
 
-<<<<<<< HEAD
 # Markdown (except README)
-*.md
 !README.md
 
 # Python
@@ -68,5 +66,3 @@ pip-delete-this-directory.txt
 
 # Watchtower traces
 .watchtower/
-=======
->>>>>>> 9d6b058 (feat(cli): Implement complete CLI foundation (Phase 2-5))

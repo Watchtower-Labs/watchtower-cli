@@ -26,7 +26,6 @@ from datetime import datetime
 try:
     from google.adk.agents import Agent
     from google.adk.runners import InMemoryRunner
-    from google.adk.sessions import Session
     from google.genai.types import Content, Part
 except ImportError as e:
     print(f"ERROR: Required packages not installed: {e}")
@@ -170,13 +169,12 @@ async def run_test_agent():
     user_id = "test_user"
     session_id = f"test_session_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
 
-    # Create and register the session
-    session = Session(
-        id=session_id,
-        appName="watchtower_test",
-        userId=user_id,
+    # Create session using the proper API
+    session = await runner.session_service.create_session(
+        app_name="watchtower_test",
+        user_id=user_id,
+        session_id=session_id,
     )
-    await runner.memory_service.add_session_to_memory(session)
 
     print(f"Starting agent with {len(test_queries)} test queries...")
     print()

@@ -69,8 +69,8 @@ export function useProcessStream(
 			env: {
 				...process.env,
 				PYTHONUNBUFFERED: '1',
-				WATCHTOWER_LIVE: '1',
-				WATCHTOWER_RUN_ID: runId.current,
+				AGENTTRACE_LIVE: '1',
+				AGENTTRACE_RUN_ID: runId.current,
 			},
 		});
 
