@@ -50,9 +50,7 @@ export function EventLine({
 			</Text>
 
 			{/* Timestamp */}
-			{showTimestamp && (
-				<Text dimColor={!current}>{timeStr.padEnd(14)}</Text>
-			)}
+			{showTimestamp && <Text dimColor={!current}>{timeStr.padEnd(14)}</Text>}
 
 			{/* Event icon */}
 			<Text color={color}>{icon}</Text>
@@ -64,9 +62,7 @@ export function EventLine({
 			</Text>
 
 			{/* Event details */}
-			{detail && (
-				<Text dimColor={!current}> {detail}</Text>
-			)}
+			{detail && <Text dimColor={!current}> {detail}</Text>}
 		</Box>
 	);
 }

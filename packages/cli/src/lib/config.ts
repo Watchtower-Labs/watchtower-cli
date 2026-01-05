@@ -47,7 +47,9 @@ export function ensureConfigDir(): string {
  * Parse a simple YAML config file
  * Supports basic key: value format without nested objects
  */
-function parseSimpleYaml(content: string): Record<string, string | number | boolean> {
+function parseSimpleYaml(
+	content: string,
+): Record<string, string | number | boolean> {
 	const result: Record<string, string | number | boolean> = {};
 	const lines = content.split('\n');
 
@@ -119,8 +121,13 @@ export function loadConfig(): CliConfig {
 			config.maxEvents = parsed['maxEvents'];
 		}
 
-		if (parsed['timestampFormat'] && isValidTimestampFormat(parsed['timestampFormat'])) {
-			config.timestampFormat = parsed['timestampFormat'] as CliConfig['timestampFormat'];
+		if (
+			parsed['timestampFormat'] &&
+			isValidTimestampFormat(parsed['timestampFormat'])
+		) {
+			config.timestampFormat = parsed[
+				'timestampFormat'
+			] as CliConfig['timestampFormat'];
 		}
 
 		if (typeof parsed['defaultPython'] === 'string') {
@@ -179,7 +186,9 @@ function isValidTheme(value: unknown): value is CliConfig['theme'] {
 	return value === 'dark' || value === 'light' || value === 'minimal';
 }
 
-function isValidTimestampFormat(value: unknown): value is CliConfig['timestampFormat'] {
+function isValidTimestampFormat(
+	value: unknown,
+): value is CliConfig['timestampFormat'] {
 	return value === 'relative' || value === 'absolute' || value === 'unix';
 }
 

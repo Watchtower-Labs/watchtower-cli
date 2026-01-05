@@ -188,7 +188,7 @@ watchtower-cli/
 **Commands to create structure:**
 
 ```bash
-cd /Volumes/CS_Stuff/watchtower-cli
+cd <project-root>  # Navigate to watchtower-cli root
 mkdir -p sdk/src/agenttrace/writers
 mkdir -p sdk/tests
 mkdir -p sdk/examples

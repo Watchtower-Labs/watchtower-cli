@@ -35,9 +35,9 @@ export function TailCommand({script}: TailCommandProps): React.ReactElement {
 			}
 
 			// Move current event to completed using functional updater
-			setCurrentEvent((prev) => {
+			setCurrentEvent(prev => {
 				if (prev) {
-					setCompletedEvents((events) => [...events, prev]);
+					setCompletedEvents(events => [...events, prev]);
 				}
 				return event;
 			});
@@ -53,7 +53,7 @@ export function TailCommand({script}: TailCommandProps): React.ReactElement {
 	// Keyboard handlers
 	useKeyboard({
 		onPause: () => {
-			setPaused((p) => !p);
+			setPaused(p => !p);
 		},
 		onQuit: () => {
 			stop();
@@ -112,7 +112,11 @@ export function TailCommand({script}: TailCommandProps): React.ReactElement {
 
 				{/* Current event - dynamically updated */}
 				{currentEvent && (
-					<EventLine event={currentEvent} current baseTimestamp={baseTimestamp} />
+					<EventLine
+						event={currentEvent}
+						current
+						baseTimestamp={baseTimestamp}
+					/>
 				)}
 
 				{/* Running indicator */}
@@ -120,17 +124,11 @@ export function TailCommand({script}: TailCommandProps): React.ReactElement {
 					<Text dimColor>Waiting for events...</Text>
 				)}
 
-				{status === 'stopped' && (
-					<Text dimColor>Process finished</Text>
-				)}
+				{status === 'stopped' && <Text dimColor>Process finished</Text>}
 			</Box>
 
 			<StatusBar
-				keys={[
-					'Ctrl+C: Stop',
-					`p: ${paused ? 'Resume' : 'Pause'}`,
-					'q: Quit',
-				]}
+				keys={['Ctrl+C: Stop', `p: ${paused ? 'Resume' : 'Pause'}`, 'q: Quit']}
 			/>
 		</Box>
 	);

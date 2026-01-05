@@ -40,7 +40,9 @@ export function ConfigCommand({
 					if (created) {
 						setMessage(`Configuration file created at ${getConfigPath()}`);
 					} else {
-						setMessage(`Configuration file already exists at ${getConfigPath()}`);
+						setMessage(
+							`Configuration file already exists at ${getConfigPath()}`,
+						);
 					}
 
 					setConfig(loadConfig());
@@ -54,7 +56,9 @@ export function ConfigCommand({
 					}
 
 					if (value === undefined) {
-						setError('Missing value. Usage: watchtower config set <key> <value>');
+						setError(
+							'Missing value. Usage: watchtower config set <key> <value>',
+						);
 						break;
 					}
 
@@ -63,7 +67,11 @@ export function ConfigCommand({
 
 					switch (key) {
 						case 'theme': {
-							if (value !== 'dark' && value !== 'light' && value !== 'minimal') {
+							if (
+								value !== 'dark' &&
+								value !== 'light' &&
+								value !== 'minimal'
+							) {
 								setError('Invalid theme. Must be: dark, light, or minimal');
 								return;
 							}
@@ -84,8 +92,14 @@ export function ConfigCommand({
 						}
 
 						case 'timestampFormat': {
-							if (value !== 'relative' && value !== 'absolute' && value !== 'unix') {
-								setError('Invalid timestampFormat. Must be: relative, absolute, or unix');
+							if (
+								value !== 'relative' &&
+								value !== 'absolute' &&
+								value !== 'unix'
+							) {
+								setError(
+									'Invalid timestampFormat. Must be: relative, absolute, or unix',
+								);
 								return;
 							}
 

@@ -104,7 +104,7 @@ Complete dataclass hierarchy for all event types:
 
 ## Files Created
 
-### Core SDK (12 files)
+### Core SDK (13 files)
 1. `pyproject.toml` - Package configuration
 2. `watchtower/__init__.py` - Public API
 3. `watchtower/plugin.py` - Main plugin (440 lines)
@@ -176,7 +176,7 @@ All events have:
 
 ## API Surface
 
-### Public API (9 exports)
+### Public API (14 exports)
 
 ```python
 from watchtower import (

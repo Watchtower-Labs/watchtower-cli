@@ -98,7 +98,7 @@ export async function resolveTracePath(traceRef: string): Promise<string> {
 	}
 
 	const entries = fs.readdirSync(traceDir);
-	const matchingFile = entries.find((entry) => {
+	const matchingFile = entries.find(entry => {
 		const parsed = parseTraceFilename(entry);
 		return parsed && parsed.runId === traceRef;
 	});

@@ -6,7 +6,7 @@ This creates the simplest possible ADK agent to test plugin integration.
 
 import asyncio
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 from google.adk.agents import Agent
 from google.adk.runners import InMemoryRunner
@@ -27,6 +27,7 @@ def calculator(operation: str, a: float, b: float) -> float:
         "multiply": lambda x, y: x * y,
         "divide": lambda x, y: x / y if y != 0 else 0,
     }
+    # Returns 0 for unknown operations (intentional soft failure for test resilience)
     result = operations.get(operation, lambda x, y: 0)(a, b)
     print(f"  [TOOL] Calculator: {a} {operation} {b} = {result}")
     return result
@@ -34,7 +35,7 @@ def calculator(operation: str, a: float, b: float) -> float:
 
 def get_time() -> str:
     """Returns current time."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     print(f"  [TOOL] Current time: {now}")
     return now
 

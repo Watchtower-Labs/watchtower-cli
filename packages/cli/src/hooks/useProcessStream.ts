@@ -82,7 +82,7 @@ export function useProcessStream(
 		});
 
 		// Handle spawn error
-		proc.on('error', (err) => {
+		proc.on('error', err => {
 			setError(err.message);
 			setStatus('error');
 		});
@@ -94,7 +94,7 @@ export function useProcessStream(
 				crlfDelay: Infinity,
 			});
 
-			rl.on('line', (line) => {
+			rl.on('line', line => {
 				// Try JSON-RPC format first (SDK live output)
 				let event = parseJsonRpc(line);
 
@@ -105,7 +105,7 @@ export function useProcessStream(
 
 				if (event) {
 					// Update stats based on event type
-					setStats((prev) => {
+					setStats(prev => {
 						const newStats = {...prev};
 						newStats.duration = Date.now() - startTimeRef.current;
 

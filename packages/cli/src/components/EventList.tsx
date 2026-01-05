@@ -80,7 +80,10 @@ export function EventList({
 
 			{/* Scroll up indicator */}
 			{showScrollUp && (
-				<Text dimColor> {'\u2191'} {startIndex} more above</Text>
+				<Text dimColor>
+					{' '}
+					{'\u2191'} {startIndex} more above
+				</Text>
 			)}
 
 			{/* Event lines */}

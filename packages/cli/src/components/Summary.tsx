@@ -12,7 +12,10 @@ export interface SummaryProps {
 	liveStats?: LiveStats;
 }
 
-export function Summary({summary, liveStats}: SummaryProps): React.ReactElement {
+export function Summary({
+	summary,
+	liveStats,
+}: SummaryProps): React.ReactElement {
 	// Use live stats if provided, otherwise use summary
 	const duration = liveStats?.duration ?? summary?.duration ?? 0;
 	const llmCalls = liveStats?.llmCalls ?? summary?.llmCalls ?? 0;
@@ -21,12 +24,7 @@ export function Summary({summary, liveStats}: SummaryProps): React.ReactElement 
 	const errors = liveStats?.errors ?? summary?.errors ?? 0;
 
 	return (
-		<Box
-			borderStyle="single"
-			borderColor="gray"
-			paddingX={1}
-			gap={3}
-		>
+		<Box borderStyle="single" borderColor="gray" paddingX={1} gap={3}>
 			<Text>
 				Duration: <Text bold>{formatDuration(duration)}</Text>
 			</Text>

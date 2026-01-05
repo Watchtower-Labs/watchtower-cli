@@ -77,7 +77,9 @@ function DetailRow({
 	);
 }
 
-function renderTypeSpecificFields(event: TraceEvent): React.ReactElement | null {
+function renderTypeSpecificFields(
+	event: TraceEvent,
+): React.ReactElement | null {
 	switch (event.type) {
 		case 'run.start': {
 			const e = event as {invocation_id?: string; agent_name?: string};
@@ -90,7 +92,10 @@ function renderTypeSpecificFields(event: TraceEvent): React.ReactElement | null 
 		}
 
 		case 'run.end': {
-			const e = event as {duration_ms?: number; summary?: Record<string, unknown>};
+			const e = event as {
+				duration_ms?: number;
+				summary?: Record<string, unknown>;
+			};
 			return (
 				<>
 					<DetailRow

@@ -26,22 +26,22 @@ export function ShowCommand({trace}: ShowCommandProps): React.ReactElement {
 	useKeyboard({
 		onUp: () => {
 			if (!expandedEvent) {
-				setSelectedIndex((i) => Math.max(0, i - 1));
+				setSelectedIndex(i => Math.max(0, i - 1));
 			}
 		},
 		onDown: () => {
 			if (!expandedEvent) {
-				setSelectedIndex((i) => Math.min(events.length - 1, i + 1));
+				setSelectedIndex(i => Math.min(events.length - 1, i + 1));
 			}
 		},
 		onPageUp: () => {
 			if (!expandedEvent) {
-				setSelectedIndex((i) => Math.max(0, i - 10));
+				setSelectedIndex(i => Math.max(0, i - 10));
 			}
 		},
 		onPageDown: () => {
 			if (!expandedEvent) {
-				setSelectedIndex((i) => Math.min(events.length - 1, i + 10));
+				setSelectedIndex(i => Math.min(events.length - 1, i + 10));
 			}
 		},
 		onHome: () => {
@@ -109,11 +109,7 @@ export function ShowCommand({trace}: ShowCommandProps): React.ReactElement {
 		return (
 			<Box flexDirection="column">
 				<Header runId={summary.runId || 'unknown'} />
-				<Box
-					borderStyle="single"
-					borderColor="gray"
-					paddingX={1}
-				>
+				<Box borderStyle="single" borderColor="gray" paddingX={1}>
 					<Text dimColor>No events found in trace</Text>
 				</Box>
 				<StatusBar keys={['q: Quit']} />

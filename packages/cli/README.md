@@ -26,6 +26,7 @@ watchtower show ./path/to/trace.jsonl
 ```
 
 **Keyboard shortcuts:**
+
 - `↑`/`↓` or `j`/`k` - Navigate events
 - `Enter` - Expand event details
 - `b` or `Esc` - Go back
@@ -46,6 +47,7 @@ watchtower tail -- python my_agent.py --config prod.yaml
 ```
 
 **Keyboard shortcuts:**
+
 - `p` - Pause/Resume streaming
 - `Ctrl+C` - Stop the process
 - `q` - Quit
@@ -84,12 +86,12 @@ Configuration is stored in `~/.watchtower/cli.yaml`.
 
 **Available settings:**
 
-| Setting | Values | Default | Description |
-|---------|--------|---------|-------------|
-| `theme` | `dark`, `light`, `minimal` | `dark` | Color theme |
-| `maxEvents` | number | `1000` | Maximum events to display |
-| `timestampFormat` | `relative`, `absolute`, `unix` | `relative` | Timestamp display format |
-| `defaultPython` | string | `python3` | Python executable for tail command |
+| Setting           | Values                         | Default    | Description                        |
+| ----------------- | ------------------------------ | ---------- | ---------------------------------- |
+| `theme`           | `dark`, `light`, `minimal`     | `dark`     | Color theme                        |
+| `maxEvents`       | number                         | `1000`     | Maximum events to display          |
+| `timestampFormat` | `relative`, `absolute`, `unix` | `relative` | Timestamp display format           |
+| `defaultPython`   | string                         | `python3`  | Python executable for tail command |
 
 ## Trace File Format
 
@@ -101,17 +103,17 @@ Example: `2024-01-15_abc123.jsonl`
 
 ### Event Types
 
-| Event | Description |
-|-------|-------------|
-| `run.start` | Agent invocation begins |
-| `run.end` | Agent invocation completes |
-| `llm.request` | LLM API call initiated |
-| `llm.response` | LLM API response received |
-| `tool.start` | Tool execution begins |
-| `tool.end` | Tool execution completes |
-| `tool.error` | Tool execution failed |
-| `state.change` | Session state modified |
-| `agent.transfer` | Multi-agent handoff |
+| Event            | Description                |
+| ---------------- | -------------------------- |
+| `run.start`      | Agent invocation begins    |
+| `run.end`        | Agent invocation completes |
+| `llm.request`    | LLM API call initiated     |
+| `llm.response`   | LLM API response received  |
+| `tool.start`     | Tool execution begins      |
+| `tool.end`       | Tool execution completes   |
+| `tool.error`     | Tool execution failed      |
+| `state.change`   | Session state modified     |
+| `agent.transfer` | Multi-agent handoff        |
 
 ## Python SDK Integration
 
@@ -142,10 +144,10 @@ async for event in runner.run_async(user_id, session_id, message):
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `WATCHTOWER_TRACE_DIR` | Override trace directory (default: `~/.watchtower/traces`) |
-| `WATCHTOWER_CONFIG_DIR` | Override config directory (default: `~/.watchtower`) |
+| Variable                | Description                                                |
+| ----------------------- | ---------------------------------------------------------- |
+| `WATCHTOWER_TRACE_DIR`  | Override trace directory (default: `~/.watchtower/traces`) |
+| `WATCHTOWER_CONFIG_DIR` | Override config directory (default: `~/.watchtower`)       |
 
 ## Development
 

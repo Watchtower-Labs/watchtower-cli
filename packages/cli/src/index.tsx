@@ -19,34 +19,34 @@ void yargs(hideBin(process.argv))
 	.command(
 		'show [trace]',
 		'View a saved trace file',
-		(yargs) =>
+		yargs =>
 			yargs.positional('trace', {
 				describe: 'Trace ID, file path, or "last"',
 				type: 'string',
 				default: 'last',
 			}),
-		(argv) => {
+		argv => {
 			render(<ShowCommand trace={argv.trace} />);
 		},
 	)
 	.command(
 		'tail <script..>',
 		'Run a script and stream events live',
-		(yargs) =>
+		yargs =>
 			yargs.positional('script', {
 				describe: 'Command and arguments to run',
 				type: 'string',
 				array: true,
 				demandOption: true,
 			}),
-		(argv) => {
+		argv => {
 			render(<TailCommand script={argv.script as string[]} />);
 		},
 	)
 	.command(
 		'list',
 		'List recent traces',
-		(yargs) =>
+		yargs =>
 			yargs
 				.option('limit', {
 					alias: 'n',
@@ -58,14 +58,14 @@ void yargs(hideBin(process.argv))
 					type: 'string',
 					description: 'Only show traces since date (YYYY-MM-DD)',
 				}),
-		(argv) => {
+		argv => {
 			render(<ListCommand limit={argv.limit} since={argv.since} />);
 		},
 	)
 	.command(
 		'config [action] [key] [value]',
 		'Manage CLI configuration',
-		(yargs) =>
+		yargs =>
 			yargs
 				.positional('action', {
 					describe: 'Action: show, init, or set',
@@ -83,7 +83,7 @@ void yargs(hideBin(process.argv))
 				.example('$0 config', 'Show current configuration')
 				.example('$0 config init', 'Create default config file')
 				.example('$0 config set theme dark', 'Set theme to dark'),
-		(argv) => {
+		argv => {
 			render(
 				<ConfigCommand
 					action={argv.action as 'show' | 'init' | 'set'}

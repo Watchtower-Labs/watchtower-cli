@@ -45,10 +45,10 @@ export function ListCommand({
 	// Keyboard navigation
 	useKeyboard({
 		onUp: () => {
-			setSelectedIndex((i) => Math.max(0, i - 1));
+			setSelectedIndex(i => Math.max(0, i - 1));
 		},
 		onDown: () => {
-			setSelectedIndex((i) => {
+			setSelectedIndex(i => {
 				if (traces.length === 0) return 0;
 				return Math.min(traces.length - 1, i + 1);
 			});
@@ -109,9 +109,7 @@ export function ListCommand({
 				>
 					<Text bold>Recent Traces</Text>
 					<Text dimColor>No traces found</Text>
-					<Text dimColor>
-						Run an agent with watchtower to create traces
-					</Text>
+					<Text dimColor>Run an agent with watchtower to create traces</Text>
 				</Box>
 				<StatusBar keys={['q: Quit']} />
 			</Box>
@@ -162,13 +160,7 @@ export function ListCommand({
 				})}
 			</Box>
 
-			<StatusBar
-				keys={[
-					'\u2191\u2193: Navigate',
-					'Enter: View',
-					'q: Quit',
-				]}
-			/>
+			<StatusBar keys={['\u2191\u2193: Navigate', 'Enter: View', 'q: Quit']} />
 		</Box>
 	);
 }

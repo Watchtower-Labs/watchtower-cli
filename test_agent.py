@@ -21,7 +21,7 @@ Usage:
 import asyncio
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 try:
     from google.adk.agents import Agent
@@ -81,7 +81,7 @@ def get_current_time(timezone: str = "UTC") -> str:
     Returns:
         Current timestamp as ISO 8601 string
     """
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     print(f"  [Tool] Current time ({timezone}): {now}")
     return now
 
@@ -167,7 +167,7 @@ async def run_test_agent():
     ]
 
     user_id = "test_user"
-    session_id = f"test_session_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+    session_id = f"test_session_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
 
     # Create session using the proper API
     session = await runner.session_service.create_session(

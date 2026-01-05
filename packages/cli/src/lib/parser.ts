@@ -4,11 +4,7 @@
 
 import * as fs from 'node:fs';
 import * as readline from 'node:readline';
-import type {
-	TraceEvent,
-	TraceSummary,
-	EventType,
-} from './types.js';
+import type {TraceEvent, TraceSummary, EventType} from './types.js';
 
 // Valid event types for validation
 const validEventTypes = new Set<string>([
@@ -281,7 +277,9 @@ export function getEventDetail(event: TraceEvent): string {
 
 		case 'tool.error': {
 			const e = event as {tool_name?: string; error_type?: string};
-			return e.error_type ? `${e.tool_name}: ${e.error_type}` : e.tool_name ?? '';
+			return e.error_type
+				? `${e.tool_name}: ${e.error_type}`
+				: e.tool_name ?? '';
 		}
 
 		case 'state.change': {

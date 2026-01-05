@@ -18,7 +18,7 @@ Usage:
 import asyncio
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 try:
     from google.adk.agents import Agent
@@ -77,7 +77,7 @@ def get_current_time(timezone: str = "UTC") -> str:
     Returns:
         Current timestamp as ISO 8601 string
     """
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     print(f"  [Tool] Current time ({timezone}): {now}")
     return now
 
@@ -139,10 +139,10 @@ async def run_test_agent():
     ]
 
     user_id = "test_user"
-    session_id = f"test_session_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+    session_id = f"test_session_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
 
     # Create session using the proper API
-    session = await runner.session_service.create_session(
+    _ = await runner.session_service.create_session(
         app_name="watchtower_test",
         user_id=user_id,
         session_id=session_id,
@@ -188,7 +188,7 @@ async def run_test_agent():
         print(f"Trace saved to: {trace_path}")
         print()
         print("View the trace with:")
-        print(f"  watchtower show last")
+        print("  watchtower show last")
         print(f"  watchtower show {os.path.basename(trace_path).replace('.jsonl', '')}")
     except Exception as e:
         print(f"Note: Could not get trace path ({e})")
