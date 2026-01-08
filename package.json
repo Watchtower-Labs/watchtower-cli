@@ -7,6 +7,10 @@
     "dev:cli": "pnpm --filter @watchtower/cli dev",
     "build": "pnpm -r build",
     "build:web": "pnpm --filter @watchtower/web build",
-    "build:cli": "pnpm --filter @watchtower/cli build"
+    "build:cli": "pnpm --filter @watchtower/cli build",
+    "lint": "pnpm --filter @watchtower/cli lint",
+    "lint:fix": "pnpm --filter @watchtower/cli lint:fix",
+    "typecheck": "pnpm --filter @watchtower/cli typecheck",
+    "test": "pnpm --filter @watchtower/cli test"
   }
 }

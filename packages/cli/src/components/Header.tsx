@@ -1,11 +1,13 @@
 /**
- * Header component showing run info and status
+ * Header component showing branding, run info and status
+ *
+ * Design: Double-line border with brand colors and status badges
  */
 
 import React from 'react';
 import {Box, Text} from 'ink';
 import type {ProcessStatus} from '../lib/types.js';
-import {formatTimestamp, statusColors} from '../lib/theme.js';
+import {formatTimestamp, badges, colors} from '../lib/theme.js';
 
 export interface HeaderProps {
 	runId: string;
@@ -15,6 +17,9 @@ export interface HeaderProps {
 	status?: ProcessStatus;
 	paused?: boolean;
 }
+
+// ASCII art branding (compact)
+const BRAND = '⚡ WATCHTOWER';
 
 export function Header({
 	runId,
@@ -26,53 +31,64 @@ export function Header({
 }: HeaderProps): React.ReactElement {
 	const timeStr = timestamp ? formatTimestamp(timestamp, 'absolute') : '';
 
+	// Determine status badge
+	const getStatusBadge = () => {
+		if (paused) return badges.paused;
+		if (status === 'error') return badges.error;
+		if (live) return badges.live;
+		if (status === 'stopped') return badges.stopped;
+		if (status === 'running') return badges.live;
+		return null;
+	};
+
+	const statusBadge = getStatusBadge();
+
+	// Get status color
+	const getStatusColor = () => {
+		if (paused) return 'yellow';
+		if (status === 'error') return 'red';
+		if (live || status === 'running') return 'green';
+		return 'gray';
+	};
+
 	return (
 		<Box
-			borderStyle="single"
-			borderColor="gray"
+			borderStyle="round"
+			borderColor={colors.brand.primary}
 			paddingX={1}
-			justifyContent="space-between"
+			flexDirection="column"
 		>
-			<Box>
-				<Text bold color="magenta">
-					watchtower
+			{/* Top row: Brand + Status */}
+			<Box justifyContent="space-between">
+				<Text bold color={colors.brand.primary}>
+					{BRAND}
 				</Text>
-				<Text color="gray"> {'\u2022'} </Text>
-				<Text>
-					Run: <Text bold>{runId || 'unknown'}</Text>
-				</Text>
-				{agentName && (
-					<>
-						<Text color="gray"> {'\u2022'} </Text>
-						<Text>{agentName}</Text>
-					</>
-				)}
-				{timeStr && (
-					<>
-						<Text color="gray"> {'\u2022'} </Text>
-						<Text dimColor>{timeStr}</Text>
-					</>
+				{statusBadge && (
+					<Text bold color={getStatusColor()}>
+						{statusBadge}
+					</Text>
 				)}
 			</Box>
 
-			<Box>
-				{live && (
-					<Box marginRight={1}>
-						{paused ? (
-							<Text color="yellow">PAUSED</Text>
-						) : (
-							<Text color="green">LIVE</Text>
-						)}
-					</Box>
+			{/* Bottom row: Run details */}
+			<Box marginTop={0}>
+				<Text dimColor>Run: </Text>
+				<Text bold color="white">
+					{runId || 'unknown'}
+				</Text>
+
+				{agentName && (
+					<>
+						<Text dimColor> │ Agent: </Text>
+						<Text color="white">{agentName}</Text>
+					</>
 				)}
-				{status && (
-					<Text color={statusColors[status]}>
-						{status === 'running' && '\u25CF '}
-						{status === 'starting' && '\u25CB '}
-						{status === 'stopped' && '\u25A0 '}
-						{status === 'error' && '\u2717 '}
-						{status.toUpperCase()}
-					</Text>
+
+				{timeStr && (
+					<>
+						<Text dimColor> │ </Text>
+						<Text dimColor>{timeStr}</Text>
+					</>
 				)}
 			</Box>
 		</Box>

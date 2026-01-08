@@ -10,6 +10,25 @@ import type {TraceFileInfo} from './types.js';
 // Default trace directory
 const DEFAULT_TRACE_DIR = '.watchtower/traces';
 
+/**
+ * Check if a file path is within the trace directory (security: prevent path traversal)
+ * @param filePath - The file path to check
+ * @param traceDir - The trace directory to check against
+ * @returns true if the path is within the trace directory
+ */
+function isWithinTraceDir(filePath: string, traceDir: string): boolean {
+	const resolvedPath = path.resolve(filePath);
+	const resolvedTraceDir = path.resolve(traceDir);
+
+	// Path should start with trace directory (after normalization)
+	// Also ensure it doesn't escape via symlinks by checking the relative path
+	const relative = path.relative(resolvedTraceDir, resolvedPath);
+
+	// If relative path starts with '..', it's outside the trace directory
+	// If it's an absolute path, it's also outside
+	return !relative.startsWith('..') && !path.isAbsolute(relative);
+}
+
 // Get the trace directory path
 export function getTraceDir(): string {
 	const envDir = process.env['WATCHTOWER_TRACE_DIR'];
@@ -59,9 +78,21 @@ export function parseTraceFilename(filename: string): {
 // Resolve a trace reference to an absolute file path
 // Accepts: "last", run ID (e.g., "abc123"), or file path
 export async function resolveTracePath(traceRef: string): Promise<string> {
+	const traceDir = getTraceDir();
+
 	// If it's a file path (absolute or relative)
 	if (traceRef.includes('/') || traceRef.includes('\\')) {
 		const resolved = path.resolve(traceRef);
+
+		// Security: Prevent path traversal attacks
+		// Only allow files within the trace directory
+		if (!isWithinTraceDir(resolved, traceDir)) {
+			throw new Error(
+				`Access denied: Trace files must be within ${traceDir}. ` +
+					`Use 'watchtower list' to see available traces.`,
+			);
+		}
+
 		if (!fs.existsSync(resolved)) {
 			throw new Error(`Trace file not found: ${resolved}`);
 		}
@@ -71,16 +102,23 @@ export async function resolveTracePath(traceRef: string): Promise<string> {
 
 	// If it ends with .jsonl, treat as filename
 	if (traceRef.endsWith('.jsonl')) {
-		const traceDir = getTraceDir();
 		const resolved = path.join(traceDir, traceRef);
+
+		// Security: Verify the resolved path is still within trace directory
+		// (in case filename contains path components like "../")
+		if (!isWithinTraceDir(resolved, traceDir)) {
+			throw new Error(
+				`Access denied: Invalid trace filename. ` +
+					`Use 'watchtower list' to see available traces.`,
+			);
+		}
+
 		if (!fs.existsSync(resolved)) {
 			throw new Error(`Trace file not found: ${resolved}`);
 		}
 
 		return resolved;
 	}
-
-	const traceDir = getTraceDir();
 
 	// Handle "last" - get most recent trace
 	if (traceRef === 'last') {
@@ -143,15 +181,22 @@ export async function listTraceFiles(
 		}
 
 		const filePath = path.join(traceDir, entry);
-		const stats = fs.statSync(filePath);
 
-		traceFiles.push({
-			path: filePath,
-			runId: parsed.runId,
-			date: parsed.date,
-			size: stats.size,
-			modifiedAt: stats.mtime,
-		});
+		// Handle TOCTOU race: file may be deleted between readdir and stat
+		try {
+			const stats = fs.statSync(filePath);
+			traceFiles.push({
+				path: filePath,
+				runId: parsed.runId,
+				date: parsed.date,
+				size: stats.size,
+				modifiedAt: stats.mtime,
+			});
+		} catch (err) {
+			// File was deleted or became inaccessible between readdir and stat
+			// Skip this entry silently
+			continue;
+		}
 	}
 
 	// Sort by modification time (newest first)

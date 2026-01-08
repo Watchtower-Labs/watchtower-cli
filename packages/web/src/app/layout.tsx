@@ -1,26 +1,41 @@
 import type { Metadata } from 'next'
-import { Inter, JetBrains_Mono } from 'next/font/google'
+import { Inter, JetBrains_Mono, Playfair_Display } from 'next/font/google'
 import './globals.css'
 
 const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-inter',
+  variable: '--font-sans',
+  display: 'swap',
 })
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   variable: '--font-mono',
+  display: 'swap',
+})
+
+const playfairDisplay = Playfair_Display({
+  subsets: ['latin'],
+  variable: '--font-serif',
+  display: 'swap',
+  weight: ['400', '500', '600', '700'],
 })
 
 export const metadata: Metadata = {
-  title: 'Watchtower CLI - Terminal-based observability for AI agents',
-  description: 'View agent activity, tool calls, LLM interactions, and execution history through your terminal. Zero-config setup for Google ADK.',
-  keywords: ['observability', 'AI agents', 'Google ADK', 'terminal', 'CLI', 'debugging', 'tracing', 'watchtower'],
+  title: 'Watchtower — Agent Supervision, Refined',
+  description: 'Monitor, review, and approve autonomous agent runs with precision. Terminal-native observability for AI agents.',
+  keywords: ['observability', 'AI agents', 'CLI', 'terminal', 'monitoring', 'tracing', 'Google ADK', 'debugging', 'watchtower', 'agent supervision'],
   authors: [{ name: 'Watchtower Labs' }],
   openGraph: {
-    title: 'Watchtower CLI - Terminal-based observability for AI agents',
-    description: 'View agent activity, tool calls, LLM interactions, and execution history through your terminal.',
+    title: 'Watchtower — Agent Supervision, Refined',
+    description: 'Monitor, review, and approve autonomous agent runs with precision.',
     type: 'website',
+    siteName: 'Watchtower',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Watchtower — Agent Supervision, Refined',
+    description: 'Monitor, review, and approve autonomous agent runs with precision.',
   },
 }
 
@@ -30,8 +45,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className="antialiased">
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable}`}>
+      <body className="antialiased bg-black text-white min-h-screen">
         {children}
       </body>
     </html>

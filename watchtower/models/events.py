@@ -9,6 +9,9 @@ from typing import Optional, Any, List, Dict
 from enum import Enum
 import time
 
+# Current schema version - increment on breaking changes
+SCHEMA_VERSION = "1.0"
+
 
 class EventType(str, Enum):
     """Enumeration of all event types captured by watchtower."""
@@ -31,6 +34,7 @@ class BaseEvent:
     type: str = ""
     run_id: str = ""
     timestamp: float = field(default_factory=time.time)
+    schema_version: str = field(default=SCHEMA_VERSION)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert event to dictionary for serialization."""

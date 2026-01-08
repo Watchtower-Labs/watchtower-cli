@@ -1,8 +1,11 @@
 """Stdout writer for streaming trace events in real-time."""
 
+import logging
 import sys
 import json
 from typing import TextIO, Dict, Any, Optional
+
+logger = logging.getLogger("watchtower")
 
 
 class StdoutWriter:
@@ -30,9 +33,10 @@ class StdoutWriter:
         if hasattr(self._stream, "reconfigure"):
             try:
                 self._stream.reconfigure(line_buffering=True)
-            except Exception:
-                # Some streams don't support reconfigure
-                pass
+            except (AttributeError, OSError) as e:
+                # Some streams don't support reconfigure (e.g., pipes, StringIO)
+                # This is expected behavior, not an error
+                logger.debug("Could not enable line buffering on stream: %s", e)
 
     def write(self, event: Dict[str, Any]) -> None:
         """Write event as JSON-RPC 2.0 notification.
@@ -56,12 +60,12 @@ class StdoutWriter:
 
         except Exception as e:
             # Don't crash on write errors - observability shouldn't break the agent
-            # Write to stderr instead
-            print(f"Warning: Failed to write event to stdout: {e}", file=sys.stderr, flush=True)
+            logger.warning("Failed to write event to stdout: %s", e)
 
     def flush(self) -> None:
         """Explicit flush (usually no-op due to line buffering)."""
         try:
             self._stream.flush()
-        except Exception:
-            pass
+        except OSError as e:
+            # Log flush failures (stream may be closed or broken pipe)
+            logger.warning("Failed to flush stdout stream: %s", e)

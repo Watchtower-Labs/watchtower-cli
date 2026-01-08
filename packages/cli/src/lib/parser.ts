@@ -304,3 +304,325 @@ export function getEventDetail(event: TraceEvent): string {
 export function isErrorEvent(type: EventType): boolean {
 	return type === 'tool.error';
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ENHANCED TRACE ANALYSIS
+// ═══════════════════════════════════════════════════════════════════════════
+
+import type {
+	AgentInfo,
+	ModelInfo,
+	ToolInfo,
+	AgentEventGroup,
+	TraceAnalysis,
+} from './types.js';
+
+// Extract the agent name from an event
+export function getEventAgentName(event: TraceEvent): string {
+	// Check various fields that might contain agent name
+	const e = event as Record<string, unknown>;
+	return (
+		(e['agent_name'] as string) ??
+		(e['author'] as string) ??
+		(e['from_agent'] as string) ??
+		''
+	);
+}
+
+// Analyze trace to extract agents, models, tools information
+export function analyzeTrace(events: TraceEvent[]): TraceAnalysis {
+	const summary = aggregateSummary(events);
+
+	// Track agents
+	const agentMap = new Map<
+		string,
+		{
+			eventCount: number;
+			toolCalls: number;
+			llmCalls: number;
+			tokens: number;
+			firstEventIndex: number;
+			lastEventIndex: number;
+		}
+	>();
+
+	// Track models
+	const modelMap = new Map<
+		string,
+		{
+			requestCount: number;
+			totalTokens: number;
+			inputTokens: number;
+			outputTokens: number;
+			totalLatencyMs: number;
+		}
+	>();
+
+	// Track tools
+	const toolMap = new Map<
+		string,
+		{
+			callCount: number;
+			successCount: number;
+			errorCount: number;
+			totalDurationMs: number;
+		}
+	>();
+
+	// Track current agent for each event
+	let currentAgentName = '';
+	let activeAgentName = '';
+
+	// Track pending LLM request to match with response
+	let pendingModelName = '';
+
+	// Process events
+	for (let i = 0; i < events.length; i++) {
+		const event = events[i]!;
+
+		// Update current agent based on event
+		if (event.type === 'run.start') {
+			const e = event as {agent_name?: string};
+			currentAgentName = e.agent_name ?? 'unknown';
+			activeAgentName = currentAgentName;
+		} else if (event.type === 'agent.transfer') {
+			const e = event as {to_agent?: string};
+			currentAgentName = e.to_agent ?? currentAgentName;
+			activeAgentName = currentAgentName;
+		}
+
+		// Get agent name for this event
+		const agentName = getEventAgentName(event) || currentAgentName || 'unknown';
+
+		// Update agent stats
+		if (!agentMap.has(agentName)) {
+			agentMap.set(agentName, {
+				eventCount: 0,
+				toolCalls: 0,
+				llmCalls: 0,
+				tokens: 0,
+				firstEventIndex: i,
+				lastEventIndex: i,
+			});
+		}
+
+		const agentStats = agentMap.get(agentName)!;
+		agentStats.eventCount++;
+		agentStats.lastEventIndex = i;
+
+		// Process event-specific data
+		switch (event.type) {
+			case 'llm.request': {
+				const e = event as {model?: string};
+				const modelName = e.model ?? 'unknown';
+
+				// Track pending model for matching with response
+				pendingModelName = modelName;
+
+				if (!modelMap.has(modelName)) {
+					modelMap.set(modelName, {
+						requestCount: 0,
+						totalTokens: 0,
+						inputTokens: 0,
+						outputTokens: 0,
+						totalLatencyMs: 0,
+					});
+				}
+
+				modelMap.get(modelName)!.requestCount++;
+				break;
+			}
+
+			case 'llm.response': {
+				agentStats.llmCalls++;
+				const e = event as {
+					total_tokens?: number;
+					input_tokens?: number;
+					output_tokens?: number;
+					duration_ms?: number;
+					model?: string;
+				};
+				agentStats.tokens += e.total_tokens ?? 0;
+
+				// Match with the pending model or use response model if available
+				const responseModelName = e.model ?? pendingModelName ?? 'unknown';
+				const modelStats = modelMap.get(responseModelName);
+
+				if (modelStats) {
+					modelStats.totalTokens += e.total_tokens ?? 0;
+					modelStats.inputTokens += e.input_tokens ?? 0;
+					modelStats.outputTokens += e.output_tokens ?? 0;
+					modelStats.totalLatencyMs += e.duration_ms ?? 0;
+				}
+
+				break;
+			}
+
+			case 'tool.start': {
+				agentStats.toolCalls++;
+				const e = event as {tool_name?: string};
+				const toolName = e.tool_name ?? 'unknown';
+				if (!toolMap.has(toolName)) {
+					toolMap.set(toolName, {
+						callCount: 0,
+						successCount: 0,
+						errorCount: 0,
+						totalDurationMs: 0,
+					});
+				}
+
+				toolMap.get(toolName)!.callCount++;
+				break;
+			}
+
+			case 'tool.end': {
+				const e = event as {
+					tool_name?: string;
+					duration_ms?: number;
+					success?: boolean;
+				};
+				const toolName = e.tool_name ?? 'unknown';
+				const toolStats = toolMap.get(toolName);
+				if (toolStats) {
+					if (e.success !== false) {
+						toolStats.successCount++;
+					}
+
+					toolStats.totalDurationMs += e.duration_ms ?? 0;
+				}
+
+				break;
+			}
+
+			case 'tool.error': {
+				const e = event as {tool_name?: string};
+				const toolName = e.tool_name ?? 'unknown';
+				const toolStats = toolMap.get(toolName);
+				if (toolStats) {
+					toolStats.errorCount++;
+				}
+
+				break;
+			}
+		}
+	}
+
+	// Convert maps to arrays
+	const agents: AgentInfo[] = [...agentMap.entries()].map(([name, stats]) => ({
+		name,
+		eventCount: stats.eventCount,
+		toolCalls: stats.toolCalls,
+		llmCalls: stats.llmCalls,
+		tokens: stats.tokens,
+		isActive: name === activeAgentName,
+		firstEventIndex: stats.firstEventIndex,
+		lastEventIndex: stats.lastEventIndex,
+	}));
+
+	const models: ModelInfo[] = [...modelMap.entries()].map(([name, stats]) => ({
+		name,
+		requestCount: stats.requestCount,
+		totalTokens: stats.totalTokens,
+		inputTokens: stats.inputTokens,
+		outputTokens: stats.outputTokens,
+		avgLatencyMs:
+			stats.requestCount > 0 ? stats.totalLatencyMs / stats.requestCount : 0,
+	}));
+
+	const tools: ToolInfo[] = [...toolMap.entries()].map(([name, stats]) => ({
+		name,
+		callCount: stats.callCount,
+		successCount: stats.successCount,
+		errorCount: stats.errorCount,
+		avgDurationMs:
+			stats.callCount > 0 ? stats.totalDurationMs / stats.callCount : 0,
+		totalDurationMs: stats.totalDurationMs,
+	}));
+
+	// Group events by agent
+	const eventGroups = groupEventsByAgent(events, agents);
+
+	return {
+		summary,
+		agents,
+		models,
+		tools,
+		eventGroups,
+		activeAgentName,
+		hasMultipleAgents: agents.length > 1,
+	};
+}
+
+// Group events into agent sections for timeline display
+function groupEventsByAgent(
+	events: TraceEvent[],
+	agents: AgentInfo[],
+): AgentEventGroup[] {
+	if (agents.length <= 1) {
+		// Single agent - return all events as one group
+		const agentName = agents[0]?.name ?? 'unknown';
+		return [
+			{
+				agentName,
+				events,
+				startIndex: 0,
+				endIndex: events.length - 1,
+			},
+		];
+	}
+
+	// Multi-agent - group by agent.transfer events
+	const groups: AgentEventGroup[] = [];
+	let currentGroup: TraceEvent[] = [];
+	let currentAgentName = agents[0]?.name ?? 'unknown';
+	let groupStartIndex = 0;
+
+	for (let i = 0; i < events.length; i++) {
+		const event = events[i]!;
+
+		if (event.type === 'run.start') {
+			const e = event as {agent_name?: string};
+			currentAgentName = e.agent_name ?? 'unknown';
+		}
+
+		if (event.type === 'agent.transfer') {
+			// Save current group
+			if (currentGroup.length > 0) {
+				groups.push({
+					agentName: currentAgentName,
+					events: currentGroup,
+					startIndex: groupStartIndex,
+					endIndex: i - 1,
+				});
+			}
+
+			// Add transfer event as its own "group" for special rendering
+			groups.push({
+				agentName: '__transfer__',
+				events: [event],
+				startIndex: i,
+				endIndex: i,
+			});
+
+			// Start new group
+			const e = event as {to_agent?: string};
+			currentAgentName = e.to_agent ?? 'unknown';
+			currentGroup = [];
+			groupStartIndex = i + 1;
+		} else {
+			currentGroup.push(event);
+		}
+	}
+
+	// Add final group
+	if (currentGroup.length > 0) {
+		groups.push({
+			agentName: currentAgentName,
+			events: currentGroup,
+			startIndex: groupStartIndex,
+			endIndex: events.length - 1,
+		});
+	}
+
+	return groups;
+}

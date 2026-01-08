@@ -1,22 +1,37 @@
-import { Navigation } from '@/components/Navigation'
-import { Hero } from '@/components/Hero'
-import { Features } from '@/components/Features'
-import { HowItWorks } from '@/components/HowItWorks'
-import { CodeExample } from '@/components/CodeExample'
-import { Benefits } from '@/components/Benefits'
-import { CTA } from '@/components/CTA'
+import { Header } from '@/components/layout/Header'
+import { HeroBackground } from '@/components/HeroBackground'
+import { HeroSection } from '@/components/HeroSection'
+import { FeaturesSection } from '@/components/FeaturesSection'
+import { HowItWorksSection } from '@/components/HowItWorksSection'
+import { TerminalSection } from '@/components/TerminalSection'
+import { CTASection } from '@/components/CTASection'
 import { Footer } from '@/components/Footer'
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-background">
-      <Navigation />
-      <Hero />
-      <Features />
-      <HowItWorks />
-      <CodeExample />
-      <Benefits />
-      <CTA />
+    <main className="relative bg-black overflow-hidden">
+      {/* Navigation */}
+      <Header />
+
+      {/* Hero with dramatic gradient background */}
+      <div className="relative min-h-screen">
+        <HeroBackground />
+        <HeroSection />
+      </div>
+
+      {/* Features */}
+      <FeaturesSection />
+
+      {/* Terminal preview */}
+      <TerminalSection />
+
+      {/* How it works */}
+      <HowItWorksSection />
+
+      {/* CTA */}
+      <CTASection />
+
+      {/* Footer */}
       <Footer />
     </main>
   )

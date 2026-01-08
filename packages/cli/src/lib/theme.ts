@@ -1,28 +1,67 @@
 /**
  * Visual theme constants for Watchtower CLI
+ *
+ * Design philosophy: Modern, clean, professional
+ * Inspired by Vercel CLI, GitHub CLI, and Railway CLI
  */
 
 import type {EventType} from './types.js';
 
-// Event type icons (Unicode)
+// ═══════════════════════════════════════════════════════════════════════════
+// COLOR PALETTE
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const colors = {
+	// Brand colors (matching web)
+	brand: {
+		primary: 'magenta', // Main brand color
+		secondary: 'cyan', // Accent color
+	},
+
+	// Semantic colors
+	success: 'green',
+	warning: 'yellow',
+	error: 'red',
+	info: 'blue',
+
+	// Text hierarchy
+	text: {
+		primary: 'white',
+		secondary: 'gray',
+		muted: 'gray',
+	},
+
+	// Borders
+	border: {
+		primary: 'magenta',
+		secondary: 'gray',
+		muted: 'gray',
+	},
+} as const;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EVENT TYPE STYLING
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Event type icons (Unicode) - more distinctive
 export const eventIcons: Record<EventType, string> = {
-	'run.start': '\u25B6', // ▶
-	'run.end': '\u25A0', // ■
-	'llm.request': '\u2192', // →
-	'llm.response': '\u2190', // ←
-	'tool.start': '\u2699', // ⚙
-	'tool.end': '\u2713', // ✓
-	'tool.error': '\u2717', // ✗
-	'state.change': '\u25C7', // ◇
-	'agent.transfer': '\u21C4', // ⇄
+	'run.start': '▶', // Play
+	'run.end': '⏹', // Stop
+	'llm.request': '↗', // Sending up
+	'llm.response': '↙', // Receiving down
+	'tool.start': '⚡', // Lightning bolt
+	'tool.end': '✔', // Checkmark
+	'tool.error': '✖', // X mark
+	'state.change': '◈', // Diamond
+	'agent.transfer': '⇋', // Transfer arrows
 };
 
 // Fallback ASCII icons for terminals without Unicode
 export const eventIconsAscii: Record<EventType, string> = {
 	'run.start': '>',
 	'run.end': '#',
-	'llm.request': '->',
-	'llm.response': '<-',
+	'llm.request': '^',
+	'llm.response': 'v',
 	'tool.start': '*',
 	'tool.end': '+',
 	'tool.error': 'x',
@@ -30,17 +69,30 @@ export const eventIconsAscii: Record<EventType, string> = {
 	'agent.transfer': '<>',
 };
 
-// Ink color names for event types
+// Ink color names for event types - refined palette
 export const eventColors: Record<EventType, string> = {
 	'run.start': 'green',
 	'run.end': 'blue',
-	'llm.request': 'cyan',
+	'llm.request': 'magenta',
 	'llm.response': 'cyan',
 	'tool.start': 'yellow',
-	'tool.end': 'yellow',
+	'tool.end': 'green',
 	'tool.error': 'red',
-	'state.change': 'magenta',
-	'agent.transfer': 'white',
+	'state.change': 'cyan',
+	'agent.transfer': 'magenta',
+};
+
+// Background colors for badges (when supported)
+export const eventBgColors: Record<EventType, string> = {
+	'run.start': 'greenBright',
+	'run.end': 'blueBright',
+	'llm.request': 'magentaBright',
+	'llm.response': 'cyanBright',
+	'tool.start': 'yellowBright',
+	'tool.end': 'greenBright',
+	'tool.error': 'redBright',
+	'state.change': 'cyanBright',
+	'agent.transfer': 'magentaBright',
 };
 
 // Status indicator colors
@@ -49,11 +101,122 @@ export const statusColors = {
 	running: 'green',
 	stopped: 'gray',
 	error: 'red',
+	paused: 'yellow',
 } as const;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BOX DRAWING CHARACTERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const box = {
+	// Double line (primary containers)
+	double: {
+		topLeft: '╔',
+		topRight: '╗',
+		bottomLeft: '╚',
+		bottomRight: '╝',
+		horizontal: '═',
+		vertical: '║',
+		teeRight: '╠',
+		teeLeft: '╣',
+		teeDown: '╦',
+		teeUp: '╩',
+		cross: '╬',
+	},
+
+	// Rounded (secondary containers)
+	rounded: {
+		topLeft: '╭',
+		topRight: '╮',
+		bottomLeft: '╰',
+		bottomRight: '╯',
+		horizontal: '─',
+		vertical: '│',
+	},
+
+	// Single line
+	single: {
+		topLeft: '┌',
+		topRight: '┐',
+		bottomLeft: '└',
+		bottomRight: '┘',
+		horizontal: '─',
+		vertical: '│',
+		teeRight: '├',
+		teeLeft: '┤',
+		teeDown: '┬',
+		teeUp: '┴',
+		cross: '┼',
+	},
+
+	// Heavy/bold
+	heavy: {
+		topLeft: '┏',
+		topRight: '┓',
+		bottomLeft: '┗',
+		bottomRight: '┛',
+		horizontal: '━',
+		vertical: '┃',
+	},
+} as const;
+
+// Timeline connectors
+export const timeline = {
+	start: '┌',
+	middle: '├',
+	end: '└',
+	line: '│',
+	blank: ' ',
+	arrow: '→',
+	dot: '●',
+	dotEmpty: '○',
+} as const;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VISUAL INDICATORS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Status badges (ASCII-safe for terminal compatibility)
+export const badges = {
+	live: '[LIVE]',
+	recording: '[REC]',
+	paused: '[PAUSED]',
+	stopped: '[STOPPED]',
+	error: '[ERROR]',
+	success: '[OK]',
+} as const;
+
+// Spinner frames for animations
+export const spinnerFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+export const dotsFrames = ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷'];
+
+// Progress bar characters
+export const progressBar = {
+	filled: '█',
+	empty: '░',
+	half: '▓',
+} as const;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STAT ICONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const statIcons = {
+	duration: '*',
+	llm: '>',
+	tools: '#',
+	tokens: '+',
+	errors: 'x',
+	success: 'ok',
+} as const;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
 
 // Get icon for event type
 export function getEventIcon(type: EventType, ascii = false): string {
-	return ascii ? eventIconsAscii[type] ?? '?' : eventIcons[type] ?? '\u2022';
+	return ascii ? eventIconsAscii[type] ?? '?' : eventIcons[type] ?? '•';
 }
 
 // Get color for event type
@@ -110,6 +273,14 @@ export function formatDuration(ms: number): string {
 	return `${minutes}m ${seconds}s`;
 }
 
+// Format duration as compact string (for inline display)
+export function formatDurationCompact(ms: number): string {
+	if (ms < 1000) {
+		return `${Math.round(ms)}ms`;
+	}
+	return `${(ms / 1000).toFixed(1)}s`;
+}
+
 // Format token count with commas
 export function formatTokens(count: number): string {
 	return count.toLocaleString();
@@ -153,13 +324,33 @@ export function formatRelativeTime(date: Date): string {
 	return 'just now';
 }
 
+// Create a visual duration bar
+export function createDurationBar(
+	ms: number,
+	maxMs: number = 2000,
+	width: number = 10,
+): string {
+	const ratio = Math.min(ms / maxMs, 1);
+	const filled = Math.round(ratio * width);
+	const empty = width - filled;
+	return progressBar.filled.repeat(filled) + progressBar.empty.repeat(empty);
+}
+
+// Create a percentage bar
+export function createPercentBar(percent: number, width: number = 10): string {
+	const ratio = Math.min(percent / 100, 1);
+	const filled = Math.round(ratio * width);
+	const empty = width - filled;
+	return progressBar.filled.repeat(filled) + progressBar.empty.repeat(empty);
+}
+
 // Truncate string with ellipsis
 export function truncate(str: string, maxLength: number): string {
 	if (str.length <= maxLength) {
 		return str;
 	}
 
-	return str.slice(0, maxLength - 1) + '\u2026';
+	return str.slice(0, maxLength - 1) + '…';
 }
 
 // Pad string to fixed width
@@ -169,4 +360,44 @@ export function padEnd(str: string, width: number): string {
 	}
 
 	return str + ' '.repeat(width - str.length);
+}
+
+// Pad string to fixed width (start)
+export function padStart(str: string, width: number): string {
+	if (str.length >= width) {
+		return str.slice(0, width);
+	}
+
+	return ' '.repeat(width - str.length) + str;
+}
+
+// Create a horizontal rule
+export function horizontalRule(width: number, char: string = '─'): string {
+	return char.repeat(width);
+}
+
+// Format a key binding for display (e.g., "[Enter]")
+export function formatKey(key: string): string {
+	return `[${key}]`;
+}
+
+// Get the appropriate timeline connector for a position
+export function getTimelineConnector(
+	index: number,
+	total: number,
+	isSelected: boolean = false,
+): string {
+	if (total === 1) {
+		return isSelected ? '●' : '○';
+	}
+
+	if (index === 0) {
+		return timeline.start;
+	}
+
+	if (index === total - 1) {
+		return timeline.end;
+	}
+
+	return timeline.middle;
 }

@@ -105,8 +105,8 @@ plugin = AgentTracePlugin(
 
 # For CLI live tailing (auto-configured via environment)
 plugin = AgentTracePlugin(
-    enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1",
-    run_id=os.environ.get("AGENTTRACE_RUN_ID"),
+    enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1",
+    run_id=os.environ.get("WATCHTOWER_RUN_ID"),
 )
 ```
 
@@ -195,10 +195,10 @@ collector.reset()
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `AGENTTRACE_DIR` | Override trace directory | `~/.watchtower/traces` |
-| `AGENTTRACE_LIVE` | Enable stdout streaming | `0` (disabled) |
-| `AGENTTRACE_RUN_ID` | Custom run ID | Auto-generated |
-| `AGENTTRACE_DISABLE` | Disable all tracing | `0` (enabled) |
+| `WATCHTOWER_TRACE_DIR` | Override trace directory | `~/.watchtower/traces` |
+| `WATCHTOWER_LIVE` | Enable stdout streaming | `0` (disabled) |
+| `WATCHTOWER_RUN_ID` | Custom run ID | Auto-generated |
+| `WATCHTOWER_DISABLE` | Disable all tracing | `0` (enabled) |
 
 ### Config File
 
@@ -281,7 +281,7 @@ plugin.stdout_writer = stdout_writer
 ### Disable Tracing
 
 ```bash
-export AGENTTRACE_DISABLE=1
+export WATCHTOWER_DISABLE=1
 python my_agent.py  # No traces generated
 ```
 
@@ -335,7 +335,7 @@ See `examples/` directory for complete examples:
 
 1. Check the trace directory exists: `ls ~/.watchtower/traces/`
 2. Verify plugin is added: `plugins=[AgentTracePlugin()]`
-3. Check environment: `echo $AGENTTRACE_DISABLE`
+3. Check environment: `echo $WATCHTOWER_DISABLE`
 
 ### Permission errors
 
