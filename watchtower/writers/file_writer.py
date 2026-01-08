@@ -19,9 +19,9 @@ try:
 except ImportError:
     HAS_FCNTL = False
 
-from watchtower.writers.base import TraceWriter
-from watchtower.utils.sanitization import sanitize_args
-from watchtower.utils.serialization import WatchtowerJSONEncoder
+from watchtower.writers.base import TraceWriter  # noqa: E402
+from watchtower.utils.sanitization import sanitize_args  # noqa: E402
+from watchtower.utils.serialization import WatchtowerJSONEncoder  # noqa: E402
 
 
 class FileWriter(TraceWriter):
@@ -99,13 +99,18 @@ class FileWriter(TraceWriter):
                     "event_count": len(events),
                     "timestamp": datetime.now().isoformat(),
                 }
-                f.write(json.dumps(error_metadata, separators=(",", ":"), cls=WatchtowerJSONEncoder) + "\n")
+                f.write(
+                    json.dumps(error_metadata, separators=(",", ":"), cls=WatchtowerJSONEncoder)
+                    + "\n"
+                )
 
                 # Write failed events with sanitization for security
                 # Re-sanitize to ensure no sensitive data leaks to dead-letter files
                 for event in events:
                     sanitized_event = sanitize_args(event) if isinstance(event, dict) else event
-                    line = json.dumps(sanitized_event, separators=(",", ":"), cls=WatchtowerJSONEncoder)
+                    line = json.dumps(
+                        sanitized_event, separators=(",", ":"), cls=WatchtowerJSONEncoder
+                    )
                     f.write(line + "\n")
         except Exception as e:
             # If we can't write to dead-letter, log as critical error
@@ -190,7 +195,9 @@ class FileWriter(TraceWriter):
                     # Write all buffered events with lock release guarantee
                     try:
                         for event in events_to_write:
-                            line = json.dumps(event, separators=(",", ":"), cls=WatchtowerJSONEncoder)
+                            line = json.dumps(
+                                event, separators=(",", ":"), cls=WatchtowerJSONEncoder
+                            )
                             f.write(line + "\n")
                     finally:
                         # Always release lock if it was acquired (Unix only)

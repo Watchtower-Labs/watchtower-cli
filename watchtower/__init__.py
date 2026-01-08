@@ -24,18 +24,6 @@ Logging:
 
 import logging
 
-__version__ = "0.1.0"
-
-# Configure watchtower logger
-logger = logging.getLogger("watchtower")
-
-# Set up a handler if none exists (prevents "No handler found" warnings)
-if not logger.handlers:
-    handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter("%(name)s: %(levelname)s: %(message)s"))
-    logger.addHandler(handler)
-    logger.setLevel(logging.WARNING)  # Default to WARNING level
-
 from watchtower.plugin import AgentTracePlugin
 from watchtower.config import WatchtowerConfig
 from watchtower.models.events import (
@@ -59,6 +47,18 @@ from watchtower.exceptions import (
     WatchtowerExtractionError,
     WatchtowerConfigError,
 )
+
+__version__ = "0.1.0"
+
+# Configure watchtower logger
+logger = logging.getLogger("watchtower")
+
+# Set up a handler if none exists (prevents "No handler found" warnings)
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(name)s: %(levelname)s: %(message)s"))
+    logger.addHandler(handler)
+    logger.setLevel(logging.WARNING)  # Default to WARNING level
 
 __all__ = [
     "AgentTracePlugin",

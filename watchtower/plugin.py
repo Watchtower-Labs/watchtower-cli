@@ -36,14 +36,13 @@ except ImportError:
     ToolContext = Any  # type: ignore[misc,assignment]
     Event = Any  # type: ignore[misc,assignment]
 
-from watchtower.collector import EventCollector
-from watchtower.writers.file_writer import FileWriter
-from watchtower.writers.stdout_writer import StdoutWriter
-from watchtower.utils.sanitization import sanitize_args, truncate_response
-from watchtower.exceptions import (
+from watchtower.collector import EventCollector  # noqa: E402
+from watchtower.writers.file_writer import FileWriter  # noqa: E402
+from watchtower.writers.stdout_writer import StdoutWriter  # noqa: E402
+from watchtower.utils.sanitization import sanitize_args, truncate_response  # noqa: E402
+from watchtower.exceptions import (  # noqa: E402
     WatchtowerError,
     WatchtowerWriteError,
-    WatchtowerExtractionError,
 )
 
 

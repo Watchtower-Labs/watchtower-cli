@@ -3,7 +3,6 @@
 Implements retention policy enforcement for trace files.
 """
 
-import os
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
