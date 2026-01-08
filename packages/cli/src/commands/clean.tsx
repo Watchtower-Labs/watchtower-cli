@@ -3,7 +3,7 @@
  */
 
 import React, {useState, useEffect} from 'react';
-import {Box, Text} from 'ink';
+import {Box, Text, useInput, useApp} from 'ink';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {getTraceDir} from '../lib/paths.js';
@@ -16,6 +16,7 @@ interface CleanCommandProps {
 	dryRun?: boolean;
 	all?: boolean;
 	retentionDays?: number;
+	yes?: boolean; // Skip confirmation
 }
 
 interface TraceFile {
@@ -100,16 +101,36 @@ export function CleanCommand({
 	dryRun = false,
 	all = false,
 	retentionDays = 30,
+	yes = false,
 }: CleanCommandProps) {
-	const [status, setStatus] = useState<'scanning' | 'done' | 'error'>(
-		'scanning',
-	);
+	const {exit} = useApp();
+	const [status, setStatus] = useState<
+		'scanning' | 'confirming' | 'deleting' | 'done' | 'cancelled' | 'error'
+	>('scanning');
 	const [deletedCount, setDeletedCount] = useState(0);
 	const [bytesFreed, setBytesFreed] = useState(0);
 	const [error, setError] = useState<string | null>(null);
 	const [filesToDelete, setFilesToDelete] = useState<TraceFile[]>([]);
 
+	// Handle keyboard input for confirmation
+	useInput(
+		(input, _key) => {
+			if (status !== 'confirming') return;
+
+			if (input.toLowerCase() === 'y') {
+				setStatus('deleting');
+			} else if (input.toLowerCase() === 'n' || input === '\x1B') {
+				setStatus('cancelled');
+				setTimeout(() => exit(), 100);
+			}
+		},
+		{isActive: status === 'confirming'},
+	);
+
+	// Scan for files to delete
 	useEffect(() => {
+		if (status !== 'scanning') return;
+
 		try {
 			const files = all ? listAllTraces() : listExpiredTraces(retentionDays);
 			setFilesToDelete(files);
@@ -119,20 +140,49 @@ export function CleanCommand({
 				return;
 			}
 
+			// Calculate totals for display
+			let bytes = 0;
+			for (const file of files) {
+				bytes += file.size;
+			}
+			setBytesFreed(bytes);
+			setDeletedCount(files.length);
+
+			// If dry run, just show results
+			if (dryRun) {
+				setStatus('done');
+				return;
+			}
+
+			// If --yes flag, skip confirmation
+			if (yes) {
+				setStatus('deleting');
+			} else {
+				setStatus('confirming');
+			}
+		} catch (err) {
+			setError(err instanceof Error ? err.message : String(err));
+			setStatus('error');
+		}
+	}, [status, dryRun, all, retentionDays, yes]);
+
+	// Perform deletion
+	useEffect(() => {
+		if (status !== 'deleting') return;
+
+		try {
 			let count = 0;
 			let bytes = 0;
 
-			for (const file of files) {
-				if (!dryRun) {
-					try {
-						fs.unlinkSync(file.path);
-					} catch {
-						// Skip files that can't be deleted
-						continue;
-					}
+			for (const file of filesToDelete) {
+				try {
+					fs.unlinkSync(file.path);
+					count++;
+					bytes += file.size;
+				} catch {
+					// Skip files that can't be deleted
+					continue;
 				}
-				count++;
-				bytes += file.size;
 			}
 
 			setDeletedCount(count);
@@ -142,7 +192,7 @@ export function CleanCommand({
 			setError(err instanceof Error ? err.message : String(err));
 			setStatus('error');
 		}
-	}, [dryRun, all, retentionDays]);
+	}, [status, filesToDelete]);
 
 	if (status === 'scanning') {
 		return (
@@ -160,7 +210,15 @@ export function CleanCommand({
 		);
 	}
 
-	if (filesToDelete.length === 0) {
+	if (status === 'cancelled') {
+		return (
+			<Box>
+				<Text color="yellow">Cancelled - no files deleted.</Text>
+			</Box>
+		);
+	}
+
+	if (filesToDelete.length === 0 && status === 'done') {
 		return (
 			<Box flexDirection="column">
 				<Text color="green">No traces to clean.</Text>
@@ -173,6 +231,49 @@ export function CleanCommand({
 		);
 	}
 
+	// Confirmation prompt
+	if (status === 'confirming') {
+		return (
+			<Box flexDirection="column">
+				<Box marginBottom={1}>
+					<Text color="yellow" bold>
+						⚠ Warning: This will permanently delete {deletedCount} trace
+						{deletedCount === 1 ? '' : 's'} ({formatFileSize(bytesFreed)})
+					</Text>
+				</Box>
+
+				<Box marginBottom={1}>
+					<Text color="gray">Files to delete:</Text>
+				</Box>
+				{filesToDelete.slice(0, 10).map(file => (
+					<Text key={file.path} color="gray">
+						{' '}
+						• {path.basename(file.path)} ({formatFileSize(file.size)})
+					</Text>
+				))}
+				{filesToDelete.length > 10 && (
+					<Text color="gray"> ... and {filesToDelete.length - 10} more</Text>
+				)}
+
+				<Box marginTop={1}>
+					<Text>
+						Delete these files? [<Text color="green">y</Text>/
+						<Text color="red">N</Text>]{' '}
+					</Text>
+				</Box>
+			</Box>
+		);
+	}
+
+	if (status === 'deleting') {
+		return (
+			<Box>
+				<Text color="yellow">Deleting traces...</Text>
+			</Box>
+		);
+	}
+
+	// Done state
 	return (
 		<Box flexDirection="column">
 			{dryRun ? (
@@ -201,7 +302,7 @@ export function CleanCommand({
 			) : (
 				<>
 					<Text color="green">
-						Deleted <Text bold>{deletedCount}</Text> trace
+						✓ Deleted <Text bold>{deletedCount}</Text> trace
 						{deletedCount === 1 ? '' : 's'}
 					</Text>
 					<Text>

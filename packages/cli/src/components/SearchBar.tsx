@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import {Box, Text} from 'ink';
+import {Box, Text, useInput} from 'ink';
 import {colors} from '../lib/theme.js';
 
 export interface SearchBarProps {
@@ -15,13 +15,48 @@ export interface SearchBarProps {
 	resultCount: number;
 	totalCount: number;
 	onClose: () => void;
+	isActive?: boolean;
 }
 
 export function SearchBar({
 	query,
+	onChange,
 	resultCount,
 	totalCount,
+	onClose,
+	isActive = true,
 }: SearchBarProps): React.ReactElement {
+	// Handle keyboard input when search is active
+	useInput(
+		(input, key) => {
+			if (!isActive) return;
+
+			// Escape closes the search
+			if (key.escape) {
+				onClose();
+				return;
+			}
+
+			// Enter confirms and closes
+			if (key.return) {
+				onClose();
+				return;
+			}
+
+			// Backspace/Delete removes last character
+			if (key.backspace || key.delete) {
+				onChange(query.slice(0, -1));
+				return;
+			}
+
+			// Add printable characters to query
+			if (input && !key.ctrl && !key.meta) {
+				onChange(query + input);
+			}
+		},
+		{isActive},
+	);
+
 	return (
 		<Box
 			borderStyle="round"

@@ -12,21 +12,36 @@ const DEFAULT_TRACE_DIR = '.watchtower/traces';
 
 /**
  * Check if a file path is within the trace directory (security: prevent path traversal)
+ *
+ * This function uses fs.realpathSync() to resolve symlinks, preventing symlink-based
+ * directory escape attacks (e.g., traces/evil.jsonl -> /etc/passwd).
+ *
  * @param filePath - The file path to check
  * @param traceDir - The trace directory to check against
  * @returns true if the path is within the trace directory
  */
 function isWithinTraceDir(filePath: string, traceDir: string): boolean {
-	const resolvedPath = path.resolve(filePath);
-	const resolvedTraceDir = path.resolve(traceDir);
+	try {
+		// Resolve symlinks to get the actual path
+		// This prevents symlink escape attacks where a file inside the trace dir
+		// is a symlink pointing outside (e.g., traces/evil.jsonl -> /etc/passwd)
+		const resolvedPath = fs.existsSync(filePath)
+			? fs.realpathSync(filePath)
+			: path.resolve(filePath);
+		const resolvedTraceDir = fs.existsSync(traceDir)
+			? fs.realpathSync(traceDir)
+			: path.resolve(traceDir);
 
-	// Path should start with trace directory (after normalization)
-	// Also ensure it doesn't escape via symlinks by checking the relative path
-	const relative = path.relative(resolvedTraceDir, resolvedPath);
+		// Calculate relative path from trace directory
+		const relative = path.relative(resolvedTraceDir, resolvedPath);
 
-	// If relative path starts with '..', it's outside the trace directory
-	// If it's an absolute path, it's also outside
-	return !relative.startsWith('..') && !path.isAbsolute(relative);
+		// If relative path starts with '..', it's outside the trace directory
+		// If it's an absolute path, it's also outside
+		return !relative.startsWith('..') && !path.isAbsolute(relative);
+	} catch {
+		// If realpath fails (e.g., broken symlink), deny access
+		return false;
+	}
 }
 
 // Get the trace directory path

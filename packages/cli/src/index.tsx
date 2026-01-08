@@ -117,16 +117,24 @@ void yargs(hideBin(process.argv))
 					description: 'Retention period in days',
 					default: 30,
 				})
+				.option('yes', {
+					alias: 'y',
+					type: 'boolean',
+					description: 'Skip confirmation prompt',
+					default: false,
+				})
 				.example('$0 clean', 'Delete traces older than 30 days')
 				.example('$0 clean --dry-run', 'Show what would be deleted')
 				.example('$0 clean --retention 7', 'Delete traces older than 7 days')
-				.example('$0 clean --all', 'Delete all traces'),
+				.example('$0 clean --all', 'Delete all traces')
+				.example('$0 clean --yes', 'Delete without confirmation'),
 		argv => {
 			render(
 				<CleanCommand
 					dryRun={argv.dryRun}
 					all={argv.all}
 					retentionDays={argv.retention}
+					yes={argv.yes}
 				/>,
 			);
 		},

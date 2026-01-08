@@ -5,7 +5,7 @@
  */
 
 import React, {useState, useMemo} from 'react';
-import {Box, Text, useInput} from 'ink';
+import {Box, Text} from 'ink';
 import {Header} from '../components/Header.js';
 import {Summary} from '../components/Summary.js';
 import {EventListGrouped} from '../components/EventListGrouped.js';
@@ -68,35 +68,6 @@ export function ShowCommand({trace}: ShowCommandProps): React.ReactElement {
 
 	// Use filtered events for display
 	const displayEvents = searchQuery ? filteredResult.events : events;
-
-	// Handle search input
-	useInput(
-		(input, key) => {
-			if (!isSearching) return;
-
-			if (key.escape) {
-				setIsSearching(false);
-				return;
-			}
-
-			if (key.return) {
-				setIsSearching(false);
-				// Keep the filter active, just close input mode
-				return;
-			}
-
-			if (key.backspace || key.delete) {
-				setSearchQuery(q => q.slice(0, -1));
-				return;
-			}
-
-			// Add printable characters to query
-			if (input && !key.ctrl && !key.meta) {
-				setSearchQuery(q => q + input);
-			}
-		},
-		{isActive: isSearching},
-	);
 
 	// Analyze trace for enhanced data
 	const analysis = useMemo(() => {
@@ -392,6 +363,7 @@ export function ShowCommand({trace}: ShowCommandProps): React.ReactElement {
 					resultCount={displayEvents.length}
 					totalCount={events.length}
 					onClose={() => setIsSearching(false)}
+					isActive={isSearching}
 				/>
 			)}
 
