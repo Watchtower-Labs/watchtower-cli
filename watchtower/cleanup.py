@@ -48,7 +48,13 @@ def list_expired_traces(
 
     expired: List[Tuple[Path, str, int]] = []
 
-    for entry in dir_path.iterdir():
+    try:
+        entries = list(dir_path.iterdir())
+    except OSError:
+        # Directory may have been deleted between exists() and iterdir() (TOCTOU)
+        return []
+
+    for entry in entries:
         if not entry.is_file():
             continue
 
@@ -130,7 +136,13 @@ def cleanup_all_traces(
     deleted_count = 0
     bytes_freed = 0
 
-    for entry in dir_path.iterdir():
+    try:
+        entries = list(dir_path.iterdir())
+    except OSError:
+        # Directory may have been deleted between exists() and iterdir() (TOCTOU)
+        return (0, 0)
+
+    for entry in entries:
         if not entry.is_file():
             continue
 
@@ -163,19 +175,27 @@ def get_trace_stats(
     """
     dir_path = get_trace_dir(trace_dir)
 
+    empty_stats = {
+        "total_count": 0,
+        "total_size": 0,
+        "oldest_date": None,
+        "newest_date": None,
+    }
+
     if not dir_path.exists():
-        return {
-            "total_count": 0,
-            "total_size": 0,
-            "oldest_date": None,
-            "newest_date": None,
-        }
+        return empty_stats
 
     dates: List[str] = []
     total_size = 0
     total_count = 0
 
-    for entry in dir_path.iterdir():
+    try:
+        entries = list(dir_path.iterdir())
+    except OSError:
+        # Directory may have been deleted between exists() and iterdir() (TOCTOU)
+        return empty_stats
+
+    for entry in entries:
         if not entry.is_file():
             continue
 
