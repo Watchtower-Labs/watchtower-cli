@@ -111,6 +111,9 @@ export function CleanCommand({
 	const [bytesFreed, setBytesFreed] = useState(0);
 	const [error, setError] = useState<string | null>(null);
 	const [filesToDelete, setFilesToDelete] = useState<TraceFile[]>([]);
+	const [failedDeletes, setFailedDeletes] = useState<
+		Array<{path: string; error: string}>
+	>([]);
 
 	// Handle keyboard input for confirmation
 	useInput(
@@ -173,20 +176,25 @@ export function CleanCommand({
 		try {
 			let count = 0;
 			let bytes = 0;
+			const failed: Array<{path: string; error: string}> = [];
 
 			for (const file of filesToDelete) {
 				try {
 					fs.unlinkSync(file.path);
 					count++;
 					bytes += file.size;
-				} catch {
-					// Skip files that can't be deleted
-					continue;
+				} catch (err) {
+					// Track failed deletions
+					failed.push({
+						path: file.path,
+						error: err instanceof Error ? err.message : String(err),
+					});
 				}
 			}
 
 			setDeletedCount(count);
 			setBytesFreed(bytes);
+			setFailedDeletes(failed);
 			setStatus('done');
 		} catch (err) {
 			setError(err instanceof Error ? err.message : String(err));
@@ -291,8 +299,7 @@ export function CleanCommand({
 					</Box>
 					{filesToDelete.slice(0, 10).map(file => (
 						<Text key={file.path} color="gray">
-							{' '}
-							{path.basename(file.path)} ({formatFileSize(file.size)})
+							{' '}• {path.basename(file.path)} ({formatFileSize(file.size)})
 						</Text>
 					))}
 					{filesToDelete.length > 10 && (
@@ -311,6 +318,26 @@ export function CleanCommand({
 							{formatFileSize(bytesFreed)}
 						</Text>
 					</Text>
+					{failedDeletes.length > 0 && (
+						<>
+							<Box marginTop={1}>
+								<Text color="yellow">
+									⚠ Failed to delete {failedDeletes.length} file
+									{failedDeletes.length === 1 ? '' : 's'}:
+								</Text>
+							</Box>
+							{failedDeletes.slice(0, 5).map(f => (
+								<Text key={f.path} color="yellow">
+									{'  '}• {path.basename(f.path)}: {f.error}
+								</Text>
+							))}
+							{failedDeletes.length > 5 && (
+								<Text color="yellow">
+									{'  '}... and {failedDeletes.length - 5} more
+								</Text>
+							)}
+						</>
+					)}
 				</>
 			)}
 		</Box>

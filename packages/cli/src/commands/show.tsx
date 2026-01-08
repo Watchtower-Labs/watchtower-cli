@@ -75,8 +75,11 @@ export function ShowCommand({trace}: ShowCommandProps): React.ReactElement {
 		return analyzeTrace(events);
 	}, [events]);
 
-	// Jump to agent's first event
+	// Jump to agent's first event (only when not filtering by search)
 	const jumpToAgent = (agentIndex: number) => {
+		// Prevent navigation when search is active - firstEventIndex is based on
+		// the full events array and may be out of bounds in displayEvents
+		if (searchQuery) return;
 		if (!analysis || agentIndex < 0 || agentIndex >= analysis.agents.length)
 			return;
 		const agent = analysis.agents[agentIndex];
@@ -95,7 +98,9 @@ export function ShowCommand({trace}: ShowCommandProps): React.ReactElement {
 		},
 		onDown: () => {
 			if (!expandedEvent && !isSearching) {
-				setSelectedIndex(i => Math.min(displayEvents.length - 1, i + 1));
+				setSelectedIndex(i =>
+					Math.max(0, Math.min(displayEvents.length - 1, i + 1)),
+				);
 			}
 		},
 		onPageUp: () => {
@@ -105,7 +110,9 @@ export function ShowCommand({trace}: ShowCommandProps): React.ReactElement {
 		},
 		onPageDown: () => {
 			if (!expandedEvent && !isSearching) {
-				setSelectedIndex(i => Math.min(displayEvents.length - 1, i + 10));
+				setSelectedIndex(i =>
+					Math.max(0, Math.min(displayEvents.length - 1, i + 10)),
+				);
 			}
 		},
 		onHome: () => {
@@ -115,7 +122,7 @@ export function ShowCommand({trace}: ShowCommandProps): React.ReactElement {
 		},
 		onEnd: () => {
 			if (!expandedEvent && !isSearching) {
-				setSelectedIndex(displayEvents.length - 1);
+				setSelectedIndex(Math.max(0, displayEvents.length - 1));
 			}
 		},
 		onEnter: () => {
@@ -213,20 +220,31 @@ export function ShowCommand({trace}: ShowCommandProps): React.ReactElement {
 			} else if (key === 'm' && !expandedEvent) {
 				setViewMode(viewMode === 'models' ? 'timeline' : 'models');
 			}
-			// Agent navigation - n/N for next/previous agent
-			else if (key === 'n' && !expandedEvent && analysis?.hasMultipleAgents) {
+			// Agent navigation - n/N for next/previous agent (disabled during search)
+			else if (
+				key === 'n' &&
+				!expandedEvent &&
+				!searchQuery &&
+				analysis?.hasMultipleAgents
+			) {
 				const nextIndex = (selectedAgentIndex + 1) % analysis.agents.length;
 				jumpToAgent(nextIndex);
-			} else if (key === 'N' && !expandedEvent && analysis?.hasMultipleAgents) {
+			} else if (
+				key === 'N' &&
+				!expandedEvent &&
+				!searchQuery &&
+				analysis?.hasMultipleAgents
+			) {
 				const prevIndex =
 					selectedAgentIndex === 0
 						? analysis.agents.length - 1
 						: selectedAgentIndex - 1;
 				jumpToAgent(prevIndex);
 			}
-			// Number keys 1-9 to jump directly to agent
+			// Number keys 1-9 to jump directly to agent (disabled during search)
 			else if (
 				!expandedEvent &&
+				!searchQuery &&
 				analysis?.hasMultipleAgents &&
 				/^[1-9]$/.test(key)
 			) {

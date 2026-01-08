@@ -240,9 +240,16 @@ export function getTraceFileInfo(filePath: string): TraceFileInfo | null {
 	};
 }
 
-// Delete a trace file
+// Delete a trace file (with path traversal protection)
 export function deleteTraceFile(filePath: string): boolean {
 	try {
+		const traceDir = getTraceDir();
+
+		// Security: Prevent deletion of files outside trace directory
+		if (!isWithinTraceDir(filePath, traceDir)) {
+			return false;
+		}
+
 		if (fs.existsSync(filePath) && isTraceFile(filePath)) {
 			fs.unlinkSync(filePath);
 			return true;
