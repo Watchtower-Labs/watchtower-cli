@@ -299,7 +299,8 @@ export function CleanCommand({
 					</Box>
 					{filesToDelete.slice(0, 10).map(file => (
 						<Text key={file.path} color="gray">
-							{' '}• {path.basename(file.path)} ({formatFileSize(file.size)})
+							{' '}
+							• {path.basename(file.path)} ({formatFileSize(file.size)})
 						</Text>
 					))}
 					{filesToDelete.length > 10 && (
