@@ -1,8 +1,7 @@
 """File writer for persisting trace events to disk."""
 
 import json
-import os
-import sys
+import logging
 import time
 import traceback
 from pathlib import Path
@@ -10,14 +9,19 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List
 import platform
 
+logger = logging.getLogger("watchtower")
+
 # Import fcntl only on Unix systems
 try:
     import fcntl
+
     HAS_FCNTL = True
 except ImportError:
     HAS_FCNTL = False
 
-from watchtower.writers.base import TraceWriter
+from watchtower.writers.base import TraceWriter  # noqa: E402
+from watchtower.utils.sanitization import sanitize_args  # noqa: E402
+from watchtower.utils.serialization import WatchtowerJSONEncoder  # noqa: E402
 
 
 class FileWriter(TraceWriter):
@@ -30,16 +34,21 @@ class FileWriter(TraceWriter):
     File locking ensures safe concurrent access.
     """
 
+    # Maximum buffer size to prevent unbounded memory growth
+    MAX_BUFFER_SIZE = 1000
+
     def __init__(
         self,
         trace_dir: str = "~/.watchtower/traces",
         buffer_size: int = 10,
+        max_buffer_size: int = MAX_BUFFER_SIZE,
     ):
         """Initialize file writer.
 
         Args:
             trace_dir: Directory to store trace files (will be expanded)
             buffer_size: Number of events to buffer before flushing
+            max_buffer_size: Maximum buffer size to prevent memory exhaustion (default: 1000)
         """
         self.trace_dir = Path(trace_dir).expanduser()
         self.trace_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -48,6 +57,7 @@ class FileWriter(TraceWriter):
         self._current_file: Optional[Path] = None
         self._buffer: List[Dict[str, Any]] = []
         self._buffer_size = buffer_size
+        self._max_buffer_size = max_buffer_size
         self._is_windows = platform.system() == "Windows"
         self._consecutive_lock_failures: int = 0
 
@@ -69,6 +79,9 @@ class FileWriter(TraceWriter):
     def _write_to_dead_letter(self, events: List[Dict[str, Any]], error: Exception) -> None:
         """Write failed events to dead-letter file.
 
+        Security: Events are re-sanitized before writing to prevent sensitive
+        data from leaking if the original sanitization failed.
+
         Args:
             events: Events that failed to write
             error: Exception that caused the failure
@@ -76,7 +89,7 @@ class FileWriter(TraceWriter):
         try:
             timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             dead_letter_file = self._dead_letter_dir / f"dead_letter_{timestamp}.jsonl"
-            
+
             with open(dead_letter_file, "a", encoding="utf-8") as f:
                 # Write error metadata
                 error_metadata = {
@@ -86,19 +99,22 @@ class FileWriter(TraceWriter):
                     "event_count": len(events),
                     "timestamp": datetime.now().isoformat(),
                 }
-                f.write(json.dumps(error_metadata, separators=(",", ":"), default=str) + "\n")
-                
-                # Write failed events
+                f.write(
+                    json.dumps(error_metadata, separators=(",", ":"), cls=WatchtowerJSONEncoder)
+                    + "\n"
+                )
+
+                # Write failed events with sanitization for security
+                # Re-sanitize to ensure no sensitive data leaks to dead-letter files
                 for event in events:
-                    line = json.dumps(event, separators=(",", ":"), default=str)
+                    sanitized_event = sanitize_args(event) if isinstance(event, dict) else event
+                    line = json.dumps(
+                        sanitized_event, separators=(",", ":"), cls=WatchtowerJSONEncoder
+                    )
                     f.write(line + "\n")
         except Exception as e:
-            # If we can't write to dead-letter, log to stderr as last resort
-            print(
-                f"Critical: Failed to write to dead-letter file: {e}",
-                file=sys.stderr,
-                flush=True,
-            )
+            # If we can't write to dead-letter, log as critical error
+            logger.critical("Failed to write to dead-letter file: %s", e)
 
     def write(self, event: Dict[str, Any]) -> None:
         """Buffer and write event to trace file.
@@ -106,6 +122,16 @@ class FileWriter(TraceWriter):
         Args:
             event: Event dictionary to write
         """
+        # Prevent unbounded buffer growth - drop oldest events if at max
+        if len(self._buffer) >= self._max_buffer_size:
+            dropped_count = len(self._buffer) - self._max_buffer_size + 1
+            logger.warning(
+                "Buffer at max capacity (%d). Dropping %d oldest event(s) to prevent memory exhaustion.",
+                self._max_buffer_size,
+                dropped_count,
+            )
+            self._buffer = self._buffer[dropped_count:]
+
         self._buffer.append(event)
 
         if len(self._buffer) >= self._buffer_size:
@@ -132,7 +158,7 @@ class FileWriter(TraceWriter):
                     lock_acquired = False
                     if HAS_FCNTL and not self._is_windows:
                         backoff_delays = [0.05, 0.1, 0.2]  # 50ms, 100ms, 200ms
-                        
+
                         for attempt, delay in enumerate(backoff_delays):
                             try:
                                 fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -145,30 +171,33 @@ class FileWriter(TraceWriter):
                                 else:
                                     # All retries failed
                                     self._consecutive_lock_failures += 1
-                                    print(
-                                        f"Warning: Failed to acquire file lock after {len(backoff_delays)} attempts "
-                                        f"for {trace_file}: {e}",
-                                        flush=True,
+                                    logger.warning(
+                                        "Failed to acquire file lock after %d attempts for %s: %s",
+                                        len(backoff_delays),
+                                        trace_file,
+                                        e,
                                     )
-                                    
+
                                     # Escalate if threshold exceeded
                                     if self._consecutive_lock_failures >= 5:
-                                        print(
-                                            f"Error: File lock acquisition has failed {self._consecutive_lock_failures} "
-                                            f"consecutive times for {trace_file}. "
-                                            f"Buffer contains {len(events_to_write)} unwritten events.",
-                                            file=sys.stderr,
-                                            flush=True,
+                                        logger.error(
+                                            "File lock acquisition has failed %d consecutive times for %s. "
+                                            "Buffer contains %d unwritten events.",
+                                            self._consecutive_lock_failures,
+                                            trace_file,
+                                            len(events_to_write),
                                         )
                                     raise
-                        
+
                         if not lock_acquired:
                             raise RuntimeError("Failed to acquire file lock")
 
                     # Write all buffered events with lock release guarantee
                     try:
                         for event in events_to_write:
-                            line = json.dumps(event, separators=(",", ":"), default=str)
+                            line = json.dumps(
+                                event, separators=(",", ":"), cls=WatchtowerJSONEncoder
+                            )
                             f.write(line + "\n")
                     finally:
                         # Always release lock if it was acquired (Unix only)
@@ -181,7 +210,7 @@ class FileWriter(TraceWriter):
                 # Success: clear all events that were written
                 # Remove events from start of buffer (events_to_write is a snapshot of buffer at start)
                 if len(self._buffer) >= len(events_to_write):
-                    self._buffer = self._buffer[len(events_to_write):]
+                    self._buffer = self._buffer[len(events_to_write) :]
                 else:
                     # Buffer was modified during retry, clear it entirely
                     self._buffer.clear()
@@ -189,41 +218,35 @@ class FileWriter(TraceWriter):
                 return
 
             except Exception as e:
-                # Log full exception details and buffered events
-                error_details = {
-                    "exception_type": type(e).__name__,
-                    "exception_message": str(e),
-                    "traceback": traceback.format_exc(),
-                    "trace_file": str(trace_file),
-                    "event_count": len(events_to_write),
-                    "retry_attempt": retry_attempt + 1,
-                    "max_retries": max_retries,
-                }
-                
-                print(
-                    f"Error: Failed to write trace events (attempt {retry_attempt + 1}/{max_retries}):\n"
-                    f"{json.dumps(error_details, indent=2, default=str)}\n"
-                    f"Buffered events: {json.dumps(events_to_write, indent=2, default=str)}",
-                    file=sys.stderr,
-                    flush=True,
+                # Log exception details
+                logger.error(
+                    "Failed to write trace events (attempt %d/%d) to %s: %s",
+                    retry_attempt + 1,
+                    max_retries,
+                    trace_file,
+                    e,
+                )
+                logger.debug(
+                    "Write failure details: %d events, traceback: %s",
+                    len(events_to_write),
+                    traceback.format_exc(),
                 )
 
                 # If this was the last retry, move to dead-letter and clear attempted events
                 if retry_attempt == max_retries - 1:
-                    print(
-                        f"Critical: All retries exhausted. Moving {len(events_to_write)} events to dead-letter file.",
-                        file=sys.stderr,
-                        flush=True,
+                    logger.critical(
+                        "All retries exhausted. Moving %d events to dead-letter file.",
+                        len(events_to_write),
                     )
                     self._write_to_dead_letter(events_to_write, e)
                     # Remove only the events that were attempted (from start of buffer)
                     if len(self._buffer) >= len(events_to_write):
-                        self._buffer = self._buffer[len(events_to_write):]
+                        self._buffer = self._buffer[len(events_to_write) :]
                     else:
                         # Buffer was modified during retry, clear it entirely
                         self._buffer.clear()
                     return
-                
+
                 # Wait before retry with exponential backoff
                 if retry_attempt < len(retry_delays):
                     time.sleep(retry_delays[retry_attempt])

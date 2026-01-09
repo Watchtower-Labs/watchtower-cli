@@ -21,7 +21,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "google-adk>=0.1.0",
+    "google-adk>=0.1.0,<1.0.0",
 ]
 
 [project.optional-dependencies]

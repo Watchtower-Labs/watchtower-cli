@@ -36,7 +36,11 @@
 	"scripts": {
 		"build": "tsc",
 		"dev": "tsc --watch",
-		"test": "prettier --check . && xo && ava",
+		"test": "tsc --project tsconfig.test.json && ava dist/*.test.js",
+		"test:watch": "ava --watch dist/*.test.js",
+		"lint": "prettier --check . && xo",
+		"lint:fix": "prettier --write . && xo --fix",
+		"typecheck": "tsc --noEmit",
 		"prepublishOnly": "pnpm run build"
 	},
 	"files": [
@@ -71,12 +75,8 @@
 		"access": "public"
 	},
 	"ava": {
-		"extensions": {
-			"ts": "module",
-			"tsx": "module"
-		},
-		"nodeArguments": [
-			"--loader=ts-node/esm"
+		"files": [
+			"dist/*.test.js"
 		]
 	},
 	"xo": {

@@ -1,9 +1,12 @@
 """Configuration management for watchtower SDK."""
 
+import logging
 import os
 from dataclasses import dataclass
 from typing import Optional
 from pathlib import Path
+
+logger = logging.getLogger("watchtower")
 
 
 @dataclass
@@ -30,20 +33,20 @@ class WatchtowerConfig:
         """Create configuration from environment variables.
 
         Environment variables:
-            AGENTTRACE_DIR: Override trace directory
-            AGENTTRACE_LIVE: Enable stdout streaming
-            AGENTTRACE_DISABLE: Disable all tracing
+            WATCHTOWER_TRACE_DIR: Override trace directory
+            WATCHTOWER_LIVE: Enable stdout streaming
+            WATCHTOWER_DISABLE: Disable all tracing
 
         Returns:
             Configuration instance
         """
         # Check if tracing is disabled
-        if os.environ.get("AGENTTRACE_DISABLE") == "1":
+        if os.environ.get("WATCHTOWER_DISABLE") == "1":
             return cls(enable_file=False, enable_stdout=False)
 
         # Load from environment
-        trace_dir = os.environ.get("AGENTTRACE_DIR", "~/.watchtower/traces")
-        enable_stdout = os.environ.get("AGENTTRACE_LIVE") == "1"
+        trace_dir = os.environ.get("WATCHTOWER_TRACE_DIR", "~/.watchtower/traces")
+        enable_stdout = os.environ.get("WATCHTOWER_LIVE") == "1"
 
         return cls(
             trace_dir=trace_dir,
@@ -70,7 +73,7 @@ class WatchtowerConfig:
             return cls()
 
         try:
-            import yaml
+            import yaml  # type: ignore[import-untyped]
 
             with open(config_file, "r") as f:
                 config_data = yaml.safe_load(f)
@@ -80,5 +83,5 @@ class WatchtowerConfig:
             # YAML not available, use defaults
             return cls()
         except Exception as e:
-            print(f"Warning: Failed to load config from {config_file}: {e}")
+            logger.warning("Failed to load config from %s: %s", config_file, e)
             return cls()

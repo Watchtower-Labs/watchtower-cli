@@ -117,10 +117,10 @@ max_response_preview: 500
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `AGENTTRACE_DIR` | Override trace directory | `/var/log/traces` |
-| `AGENTTRACE_LIVE` | Enable stdout streaming | `1` |
-| `AGENTTRACE_RUN_ID` | Override run ID | `abc123` |
-| `AGENTTRACE_DISABLE` | Disable all tracing | `1` |
+| `WATCHTOWER_TRACE_DIR` | Override trace directory | `/var/log/traces` |
+| `WATCHTOWER_LIVE` | Enable stdout streaming | `1` |
+| `WATCHTOWER_RUN_ID` | Override run ID | `abc123` |
+| `WATCHTOWER_DISABLE` | Disable all tracing | `1` |
 
 ### Using Environment Variables
 
@@ -129,11 +129,11 @@ import os
 from watchtower import AgentTracePlugin
 
 # Check if tracing should be disabled
-if os.environ.get("AGENTTRACE_DISABLE") != "1":
+if os.environ.get("WATCHTOWER_DISABLE") != "1":
     plugin = AgentTracePlugin(
-        trace_dir=os.environ.get("AGENTTRACE_DIR", "~/.watchtower/traces"),
-        enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1",
-        run_id=os.environ.get("AGENTTRACE_RUN_ID"),
+        trace_dir=os.environ.get("WATCHTOWER_TRACE_DIR", "~/.watchtower/traces"),
+        enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1",
+        run_id=os.environ.get("WATCHTOWER_RUN_ID"),
     )
     runner = InMemoryRunner(agent=agent, plugins=[plugin])
 else:
@@ -341,11 +341,11 @@ import os
 from watchtower import AgentTracePlugin
 
 # Detect CLI-spawned mode
-is_live = os.environ.get("AGENTTRACE_LIVE") == "1"
+is_live = os.environ.get("WATCHTOWER_LIVE") == "1"
 
 plugin = AgentTracePlugin(
     enable_stdout=is_live,
-    run_id=os.environ.get("AGENTTRACE_RUN_ID"),
+    run_id=os.environ.get("WATCHTOWER_RUN_ID"),
 )
 ```
 
@@ -372,9 +372,9 @@ def create_plugin():
         # Always write to files
         enable_file=True,
         # Enable stdout only when CLI is tailing
-        enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1",
+        enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1",
         # Use CLI-provided run ID if available
-        run_id=os.environ.get("AGENTTRACE_RUN_ID"),
+        run_id=os.environ.get("WATCHTOWER_RUN_ID"),
     )
 ```
 
@@ -561,7 +561,7 @@ asyncio.run(test())
 2. **Tracing disabled:**
    ```bash
    # Check environment variable
-   echo $AGENTTRACE_DISABLE
+   echo $WATCHTOWER_DISABLE
    ```
 
 3. **Permission denied:**
@@ -605,8 +605,8 @@ asyncio.run(test())
 
 1. **Environment variable not set:**
    ```python
-   # Verify AGENTTRACE_LIVE is set
-   print(os.environ.get("AGENTTRACE_LIVE"))
+   # Verify WATCHTOWER_LIVE is set
+   print(os.environ.get("WATCHTOWER_LIVE"))
    ```
 
 2. **Python buffering:**
@@ -617,7 +617,7 @@ asyncio.run(test())
 
 3. **enable_stdout not set:**
    ```python
-   enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1"
+   enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1"
    ```
 
 ---

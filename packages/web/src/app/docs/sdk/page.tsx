@@ -32,9 +32,9 @@ from watchtower import AgentTracePlugin
 # Create the plugin
 plugin = AgentTracePlugin(
     # Enable stdout streaming for live tail
-    enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1",
+    enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1",
     # Use run ID from CLI if provided
-    run_id=os.environ.get("AGENTTRACE_RUN_ID"),
+    run_id=os.environ.get("WATCHTOWER_RUN_ID"),
 )
 
 # Add to your agent
@@ -141,15 +141,15 @@ plugin = AgentTracePlugin(
           </thead>
           <tbody className="text-muted">
             <tr className="border-b border-white/10">
-              <td className="py-3 font-mono text-primary">AGENTTRACE_LIVE</td>
+              <td className="py-3 font-mono text-primary">WATCHTOWER_LIVE</td>
               <td className="py-3">Set to &quot;1&quot; to enable stdout streaming</td>
             </tr>
             <tr className="border-b border-white/10">
-              <td className="py-3 font-mono text-primary">AGENTTRACE_RUN_ID</td>
+              <td className="py-3 font-mono text-primary">WATCHTOWER_RUN_ID</td>
               <td className="py-3">Override the run ID</td>
             </tr>
             <tr className="border-b border-white/10">
-              <td className="py-3 font-mono text-primary">AGENTTRACE_DIR</td>
+              <td className="py-3 font-mono text-primary">WATCHTOWER_TRACE_DIR</td>
               <td className="py-3">Override the trace output directory</td>
             </tr>
           </tbody>

@@ -1,13 +1,13 @@
 # Watchtower
 
-[![GitHub](https://img.shields.io/badge/GitHub-Watchtower--Labs%2Fwatchtower--cli-blue?logo=github)](https://github.com/Watchtower-Labs/watchtower-cli)
+[![CI](https://img.shields.io/github/actions/workflow/status/Watchtower-Labs/watchtower-cli/test.yml?branch=main&label=CI&logo=github)](https://github.com/Watchtower-Labs/watchtower-cli/actions)
+[![npm](https://img.shields.io/npm/v/@watchtower/cli?logo=npm&label=CLI)](https://www.npmjs.com/package/@watchtower/cli)
+[![PyPI](https://img.shields.io/pypi/v/watchtower-adk?logo=pypi&label=SDK)](https://pypi.org/project/watchtower-adk/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/Watchtower-Labs/watchtower-cli/blob/main/LICENSE)
-[![Node.js](https://img.shields.io/badge/Node.js-18%2B-green?logo=node.js)](https://nodejs.org/)
-[![Python](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python)](https://python.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-20%2B-green?logo=node.js)](https://nodejs.org/)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://python.org/)
 
 Terminal-based observability for [Google ADK](https://google.github.io/adk-docs/) agents. View traces, tail live events, and debug agent behavior without leaving your terminal.
-
-> **Repository Structure:** This is a monorepo with the CLI on the [`cli`](https://github.com/Watchtower-Labs/watchtower-cli/tree/cli) branch and the Python SDK on the [`feature/phase1-sdk-core`](https://github.com/Watchtower-Labs/watchtower-cli/tree/feature/phase1-sdk-core) branch.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -41,11 +41,7 @@ Terminal-based observability for [Google ADK](https://google.github.io/adk-docs/
 ### Python SDK
 
 ```bash
-# Install from PyPI (when published)
 pip install watchtower-adk
-
-# Or install from source (feature/phase1-sdk-core branch)
-pip install git+https://github.com/Watchtower-Labs/watchtower-cli.git@feature/phase1-sdk-core
 ```
 
 ### CLI
@@ -64,13 +60,13 @@ yarn global add @watchtower/cli
 pnpm add -g @watchtower/cli
 ```
 
-Or install from source ([`cli`](https://github.com/Watchtower-Labs/watchtower-cli/tree/cli) branch):
+Or install from source:
 
 ```bash
-git clone -b cli https://github.com/Watchtower-Labs/watchtower-cli.git
-cd watchtower-cli/packages/cli
-pnpm install && pnpm build
-pnpm link --global
+git clone https://github.com/Watchtower-Labs/watchtower-cli.git
+cd watchtower-cli
+pnpm install && pnpm build:cli
+cd packages/cli && pnpm link --global
 ```
 
 ## Quick Start
@@ -414,60 +410,65 @@ This performs actual DuckDuckGo web searches and generates complete trace files 
 
 ### Python SDK
 
-- Python 3.9+
+- Python 3.10+
 - google-adk >= 0.1.0
 
 ### CLI
 
-- Node.js 18+
+- Node.js 20+
 - Terminal with ANSI color support
 
 ## Development
 
-### Repository Structure
-
-| Branch | Content | Description |
-|--------|---------|-------------|
-| [`main`](https://github.com/Watchtower-Labs/watchtower-cli/tree/main) | Web + Base | Landing page and monorepo setup |
-| [`cli`](https://github.com/Watchtower-Labs/watchtower-cli/tree/cli) | TypeScript CLI | Terminal UI (Ink/React) |
-| [`feature/phase1-sdk-core`](https://github.com/Watchtower-Labs/watchtower-cli/tree/feature/phase1-sdk-core) | Python SDK | ADK plugin + writers |
-
-### CLI Development
+### Quick Start
 
 ```bash
-# Clone the CLI branch
-git clone -b cli https://github.com/Watchtower-Labs/watchtower-cli.git
+# Clone the repository
+git clone https://github.com/Watchtower-Labs/watchtower-cli.git
 cd watchtower-cli
+
+# Use correct Node version
+nvm use
 
 # Install dependencies
 pnpm install
 
-# Build the CLI
-pnpm --filter @watchtower/cli build
+# Build CLI
+pnpm build:cli
 
-# Run locally
-node packages/cli/dist/index.js show last
+# Run tests
+pnpm test
+```
+
+### CLI Development
+
+```bash
+# Watch mode (rebuild on changes)
+pnpm dev:cli
+
+# Type checking
+pnpm typecheck
+
+# Linting
+pnpm lint
+pnpm lint:fix
 ```
 
 ### SDK Development
 
 ```bash
-# Clone the SDK branch
-git clone -b feature/phase1-sdk-core https://github.com/Watchtower-Labs/watchtower-cli.git
-cd watchtower-cli
-
 # Create virtual environment
 python -m venv venv
-source venv/bin/activate  # or `venv\Scripts\activate` on Windows
+source venv/bin/activate
 
 # Install in development mode
 pip install -e ".[dev]"
 
-# Run unit tests
-pytest tests/test_basic.py -v
+# Run tests
+pytest tests/ -v
 
-# Run integration test with real web search
-python tests/test_real_search.py
+# Enable debug mode
+WATCHTOWER_DEBUG=1 python your_script.py
 ```
 
 See [CONTRIBUTING.md](https://github.com/Watchtower-Labs/watchtower-cli/blob/main/CONTRIBUTING.md) for development guidelines.

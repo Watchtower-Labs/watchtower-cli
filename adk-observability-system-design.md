@@ -602,8 +602,8 @@ from watchtower import AgentTracePlugin
 
 # When spawned by CLI, enable stdout streaming
 plugin = AgentTracePlugin(
-    enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1",
-    run_id=os.environ.get("AGENTTRACE_RUN_ID"),
+    enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1",
+    run_id=os.environ.get("WATCHTOWER_RUN_ID"),
 )
 ```
 
@@ -1038,8 +1038,8 @@ export function useProcessStream(
       env: {
         ...process.env,
         PYTHONUNBUFFERED: '1',
-        AGENTTRACE_LIVE: '1',
-        AGENTTRACE_RUN_ID: runId.current,
+        WATCHTOWER_LIVE: '1',
+        WATCHTOWER_RUN_ID: runId.current,
       },
     });
     
@@ -1254,10 +1254,10 @@ max_response_preview: 500  # Characters to store in response_preview
 ```
 
 Environment variables:
-- `AGENTTRACE_DIR` - Override trace directory
-- `AGENTTRACE_LIVE` - Enable stdout streaming (set by CLI)
-- `AGENTTRACE_RUN_ID` - Override run ID (set by CLI)
-- `AGENTTRACE_DISABLE` - Disable all tracing
+- `WATCHTOWER_TRACE_DIR` - Override trace directory
+- `WATCHTOWER_LIVE` - Enable stdout streaming (set by CLI)
+- `WATCHTOWER_RUN_ID` - Override run ID (set by CLI)
+- `WATCHTOWER_DISABLE` - Disable all tracing
 
 ### 5.2 CLI Configuration
 

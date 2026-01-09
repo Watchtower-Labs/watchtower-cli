@@ -93,7 +93,7 @@ export PATH="$PATH:$(pnpm config get global-bin-dir)"`}
           </p>
           <pre className="bg-[#1a1a2e] border border-white/10 rounded-xl p-4 font-mono text-sm text-white overflow-x-auto">
 {`plugin = AgentTracePlugin(
-    enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1"
+    enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1"
 )`}
           </pre>
         </div>

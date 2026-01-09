@@ -1,11 +1,14 @@
 /**
  * EventList component for displaying a scrollable list of events
+ *
+ * Design: Timeline with connectors, scroll indicators, and event counter
  */
 
 import React, {useMemo} from 'react';
 import {Box, Text} from 'ink';
 import type {TraceEvent} from '../lib/types.js';
 import {EventLine} from './EventLine.js';
+import {colors, timeline} from '../lib/theme.js';
 
 export interface EventListProps {
 	events: TraceEvent[];
@@ -49,63 +52,91 @@ export function EventList({
 	if (events.length === 0) {
 		return (
 			<Box
-				borderStyle="single"
-				borderColor="gray"
+				borderStyle="round"
+				borderColor={colors.border.secondary}
 				paddingX={1}
 				flexDirection="column"
 			>
-				<Text bold>{title}</Text>
-				<Text dimColor>No events</Text>
+				<Box justifyContent="space-between">
+					<Text bold color={colors.brand.primary}>
+						{title}
+					</Text>
+				</Box>
+				<Box marginTop={1}>
+					<Text dimColor>No events to display</Text>
+				</Box>
 			</Box>
 		);
 	}
 
 	const showScrollUp = startIndex > 0;
 	const showScrollDown = startIndex + visibleEvents.length < events.length;
+	const aboveCount = startIndex;
+	const belowCount = events.length - (startIndex + visibleEvents.length);
 
 	return (
 		<Box
-			borderStyle="single"
-			borderColor="gray"
+			borderStyle="round"
+			borderColor={colors.border.secondary}
 			paddingX={1}
 			flexDirection="column"
 		>
-			{/* Title with scroll indicators */}
-			<Box justifyContent="space-between">
-				<Text bold>{title}</Text>
-				<Text dimColor>
-					{events.length} event{events.length !== 1 ? 's' : ''}
+			{/* Header with title and count */}
+			<Box justifyContent="space-between" marginBottom={0}>
+				<Text bold color={colors.brand.primary}>
+					{title}
 				</Text>
+				<Text dimColor>
+					{selectedIndex + 1}/{events.length}
+				</Text>
+			</Box>
+
+			{/* Column headers */}
+			<Box marginBottom={0}>
+				<Text dimColor>
+					{'  '}TIME{'        '}EVENT{'           '}DETAILS
+				</Text>
+			</Box>
+
+			{/* Separator line */}
+			<Box marginBottom={0}>
+				<Text dimColor>{'─'.repeat(60)}</Text>
 			</Box>
 
 			{/* Scroll up indicator */}
 			{showScrollUp && (
-				<Text dimColor>
-					{' '}
-					{'\u2191'} {startIndex} more above
-				</Text>
+				<Box>
+					<Text color="cyan">{timeline.line}</Text>
+					<Text dimColor> ↑ {aboveCount} more above</Text>
+				</Box>
 			)}
 
 			{/* Event lines */}
 			{visibleEvents.map((event, index) => {
 				const actualIndex = startIndex + index;
+				const isFirst = actualIndex === 0;
+				const isLast = actualIndex === events.length - 1;
+
 				return (
 					<EventLine
 						key={`${event.timestamp}-${actualIndex}`}
 						event={event}
 						selected={actualIndex === selectedIndex}
 						baseTimestamp={baseTimestamp}
+						isFirst={isFirst}
+						isLast={isLast}
+						index={actualIndex}
+						totalEvents={events.length}
 					/>
 				);
 			})}
 
 			{/* Scroll down indicator */}
 			{showScrollDown && (
-				<Text dimColor>
-					{' '}
-					{'\u2193'} {events.length - (startIndex + visibleEvents.length)} more
-					below
-				</Text>
+				<Box>
+					<Text color="cyan">{timeline.line}</Text>
+					<Text dimColor> ↓ {belowCount} more below</Text>
+				</Box>
 			)}
 		</Box>
 	);

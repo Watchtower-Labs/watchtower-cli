@@ -11,6 +11,7 @@ import {ShowCommand} from './commands/show.js';
 import {TailCommand} from './commands/tail.js';
 import {ListCommand} from './commands/list.js';
 import {ConfigCommand} from './commands/config.js';
+import {CleanCommand} from './commands/clean.js';
 
 // Parse arguments and render appropriate command
 void yargs(hideBin(process.argv))
@@ -89,6 +90,51 @@ void yargs(hideBin(process.argv))
 					action={argv.action as 'show' | 'init' | 'set'}
 					key={argv.key}
 					value={argv.value}
+				/>,
+			);
+		},
+	)
+	.command(
+		'clean',
+		'Delete old traces based on retention policy',
+		yargs =>
+			yargs
+				.option('dry-run', {
+					alias: 'd',
+					type: 'boolean',
+					description: 'Show what would be deleted without deleting',
+					default: false,
+				})
+				.option('all', {
+					alias: 'a',
+					type: 'boolean',
+					description: 'Delete all traces (with confirmation)',
+					default: false,
+				})
+				.option('retention', {
+					alias: 'r',
+					type: 'number',
+					description: 'Retention period in days',
+					default: 30,
+				})
+				.option('yes', {
+					alias: 'y',
+					type: 'boolean',
+					description: 'Skip confirmation prompt',
+					default: false,
+				})
+				.example('$0 clean', 'Delete traces older than 30 days')
+				.example('$0 clean --dry-run', 'Show what would be deleted')
+				.example('$0 clean --retention 7', 'Delete traces older than 7 days')
+				.example('$0 clean --all', 'Delete all traces')
+				.example('$0 clean --yes', 'Delete without confirmation'),
+		argv => {
+			render(
+				<CleanCommand
+					dryRun={argv.dryRun}
+					all={argv.all}
+					retentionDays={argv.retention}
+					yes={argv.yes}
 				/>,
 			);
 		},

@@ -160,7 +160,7 @@ class AgentTracePlugin(BasePlugin):
 **StdoutWriter:**
 - Emits JSON-RPC 2.0 notifications to stdout
 - Line-buffered for real-time streaming
-- Used when `AGENTTRACE_LIVE=1`
+- Used when `WATCHTOWER_LIVE=1`
 
 ---
 
@@ -243,7 +243,7 @@ function useProcessStream(
 ```
 
 - Spawns Python process with `child_process.spawn()`
-- Sets environment variables (`AGENTTRACE_LIVE`, etc.)
+- Sets environment variables (`WATCHTOWER_LIVE`, etc.)
 - Parses stdout via readline interface
 - Handles process lifecycle events
 
@@ -333,8 +333,8 @@ function useKeyboard(handlers: {
 │                     │
 │ env:                │
 │   PYTHONUNBUFFERED=1│
-│   AGENTTRACE_LIVE=1 │
-│   AGENTTRACE_RUN_ID │
+│   WATCHTOWER_LIVE=1 │
+│   WATCHTOWER_RUN_ID │
 └──────────┬──────────┘
            │
            ▼

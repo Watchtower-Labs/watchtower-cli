@@ -601,7 +601,7 @@ DEFAULT_CONFIG_PATH = DEFAULT_BASE_DIR / "config.yaml"
 
 def get_base_dir() -> Path:
     """Get the base agenttrace directory."""
-    env_dir = os.environ.get("AGENTTRACE_DIR")
+    env_dir = os.environ.get("WATCHTOWER_TRACE_DIR")
     if env_dir:
         return Path(env_dir).expanduser()
     return DEFAULT_BASE_DIR
@@ -659,17 +659,17 @@ def get_trace_path(run_id: str, date: Optional[datetime] = None) -> Path:
 
 def is_tracing_disabled() -> bool:
     """Check if tracing is disabled via environment variable."""
-    return os.environ.get("AGENTTRACE_DISABLE", "").lower() in ("1", "true", "yes")
+    return os.environ.get("WATCHTOWER_DISABLE", "").lower() in ("1", "true", "yes")
 
 
 def is_live_mode() -> bool:
     """Check if live streaming mode is enabled (set by CLI)."""
-    return os.environ.get("AGENTTRACE_LIVE", "").lower() in ("1", "true", "yes")
+    return os.environ.get("WATCHTOWER_LIVE", "").lower() in ("1", "true", "yes")
 
 
 def get_env_run_id() -> Optional[str]:
     """Get run ID from environment (set by CLI for correlation)."""
-    return os.environ.get("AGENTTRACE_RUN_ID")
+    return os.environ.get("WATCHTOWER_RUN_ID")
 ```
 
 ### 2.3 Main Plugin
@@ -751,7 +751,7 @@ class AgentTracePlugin:
 
         # Auto-detect CLI mode
         plugin = AgentTracePlugin(
-            enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1"
+            enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1"
         )
     """
 
@@ -1942,10 +1942,10 @@ def mock_llm_response():
 def clean_env():
     """Clean environment variables before each test."""
     env_vars = [
-        "AGENTTRACE_DISABLE",
-        "AGENTTRACE_LIVE",
-        "AGENTTRACE_RUN_ID",
-        "AGENTTRACE_DIR",
+        "WATCHTOWER_DISABLE",
+        "WATCHTOWER_LIVE",
+        "WATCHTOWER_RUN_ID",
+        "WATCHTOWER_TRACE_DIR",
     ]
 
     old_values = {k: os.environ.get(k) for k in env_vars}
@@ -2008,7 +2008,7 @@ class TestPluginInitialization:
 
     def test_env_run_id(self, temp_trace_dir: Path):
         """Plugin uses run ID from environment."""
-        os.environ["AGENTTRACE_RUN_ID"] = "env-run-456"
+        os.environ["WATCHTOWER_RUN_ID"] = "env-run-456"
 
         plugin = AgentTracePlugin(trace_dir=str(temp_trace_dir))
 
@@ -2016,8 +2016,8 @@ class TestPluginInitialization:
         plugin.close()
 
     def test_disabled_via_env(self, temp_trace_dir: Path):
-        """Plugin is disabled when AGENTTRACE_DISABLE is set."""
-        os.environ["AGENTTRACE_DISABLE"] = "1"
+        """Plugin is disabled when WATCHTOWER_DISABLE is set."""
+        os.environ["WATCHTOWER_DISABLE"] = "1"
 
         plugin = AgentTracePlugin(trace_dir=str(temp_trace_dir))
 
@@ -2025,8 +2025,8 @@ class TestPluginInitialization:
         plugin.close()
 
     def test_live_mode_from_env(self, temp_trace_dir: Path):
-        """Plugin enables stdout when AGENTTRACE_LIVE is set."""
-        os.environ["AGENTTRACE_LIVE"] = "1"
+        """Plugin enables stdout when WATCHTOWER_LIVE is set."""
+        os.environ["WATCHTOWER_LIVE"] = "1"
 
         plugin = AgentTracePlugin(trace_dir=str(temp_trace_dir))
 
@@ -2387,7 +2387,7 @@ For live CLI tailing:
     import os
 
     plugin = AgentTracePlugin(
-        enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1"
+        enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1"
     )
 """
 
@@ -2518,10 +2518,10 @@ plugin = AgentTracePlugin(
 
 | Variable | Description |
 |----------|-------------|
-| `AGENTTRACE_DIR` | Override trace directory |
-| `AGENTTRACE_LIVE` | Enable stdout streaming (set by CLI) |
-| `AGENTTRACE_RUN_ID` | Override run ID (set by CLI) |
-| `AGENTTRACE_DISABLE` | Disable all tracing |
+| `WATCHTOWER_TRACE_DIR` | Override trace directory |
+| `WATCHTOWER_LIVE` | Enable stdout streaming (set by CLI) |
+| `WATCHTOWER_RUN_ID` | Override run ID (set by CLI) |
+| `WATCHTOWER_DISABLE` | Disable all tracing |
 
 ### Live CLI Mode
 
@@ -2532,8 +2532,8 @@ import os
 from agenttrace import AgentTracePlugin
 
 plugin = AgentTracePlugin(
-    enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1",
-    run_id=os.environ.get("AGENTTRACE_RUN_ID"),
+    enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1",
+    run_id=os.environ.get("WATCHTOWER_RUN_ID"),
 )
 ```
 
@@ -2691,12 +2691,12 @@ agent = Agent(
     tools=[calculate],
 )
 
-# Enable stdout streaming when AGENTTRACE_LIVE is set
+# Enable stdout streaming when WATCHTOWER_LIVE is set
 # This is automatically set by: agenttrace tail python live_streaming.py
 plugin = AgentTracePlugin(
     enable_file=True,
-    enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1",
-    run_id=os.environ.get("AGENTTRACE_RUN_ID"),
+    enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1",
+    run_id=os.environ.get("WATCHTOWER_RUN_ID"),
 )
 
 runner = InMemoryRunner(

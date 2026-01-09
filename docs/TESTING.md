@@ -95,8 +95,8 @@ watchtower tail python test_agent.py
 ```
 
 This automatically:
-- Sets `AGENTTRACE_LIVE=1` environment variable
-- Generates a unique `AGENTTRACE_RUN_ID`
+- Sets `WATCHTOWER_LIVE=1` environment variable
+- Generates a unique `WATCHTOWER_RUN_ID`
 - Spawns the Python script
 - Streams events to the terminal as they occur
 
@@ -156,7 +156,7 @@ watchtower config --set timestampFormat=absolute
 - [ ] Events stream in real-time during agent execution
 - [ ] Pause/resume (p key) works correctly
 - [ ] Clean exit with Ctrl+C and q
-- [ ] `AGENTTRACE_LIVE` environment variable is detected by SDK
+- [ ] `WATCHTOWER_LIVE` environment variable is detected by SDK
 
 ### ✅ Event Type Tests
 
@@ -186,7 +186,7 @@ Verify all event types are captured and displayed:
 - [ ] Invalid JSONL files (corrupted data)
 - [ ] Missing trace directory (should auto-create)
 - [ ] Concurrent agents (multiple runs at same time)
-- [ ] Custom trace directories (`AGENTTRACE_DIR`)
+- [ ] Custom trace directories (`WATCHTOWER_TRACE_DIR`)
 
 ## Verification Commands
 
@@ -218,14 +218,14 @@ Add debug output to your test agent:
 
 ```python
 import os
-print(f"AGENTTRACE_LIVE: {os.environ.get('AGENTTRACE_LIVE')}")
-print(f"AGENTTRACE_RUN_ID: {os.environ.get('AGENTTRACE_RUN_ID')}")
+print(f"WATCHTOWER_LIVE: {os.environ.get('WATCHTOWER_LIVE')}")
+print(f"WATCHTOWER_RUN_ID: {os.environ.get('WATCHTOWER_RUN_ID')}")
 ```
 
 When run via `watchtower tail`, should output:
 ```
-AGENTTRACE_LIVE: 1
-AGENTTRACE_RUN_ID: <uuid>
+WATCHTOWER_LIVE: 1
+WATCHTOWER_RUN_ID: <uuid>
 ```
 
 ## Troubleshooting
@@ -258,7 +258,7 @@ pnpm link --global
 
 1. Check if tracing is disabled:
    ```bash
-   echo $AGENTTRACE_DISABLE  # Should be empty or unset
+   echo $WATCHTOWER_DISABLE  # Should be empty or unset
    ```
 
 2. Check trace directory permissions:
@@ -275,7 +275,7 @@ pnpm link --global
 
 1. Ensure `enable_stdout` responds to environment variable:
    ```python
-   enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1"
+   enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1"
    ```
 
 2. Check Python buffering (CLI sets `PYTHONUNBUFFERED=1` automatically)
@@ -309,7 +309,7 @@ Both should generate separate trace files with unique run IDs.
 ### Test Custom Trace Directory
 
 ```bash
-export AGENTTRACE_DIR=/tmp/custom-traces
+export WATCHTOWER_TRACE_DIR=/tmp/custom-traces
 python test_agent.py
 watchtower show last  # Should look in custom directory
 ```

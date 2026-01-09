@@ -23,9 +23,7 @@ class RealSearchTool:
     def __call__(self, query: str) -> dict:
         """Perform actual web search."""
         try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
             url = f"https://html.duckduckgo.com/html/?q={requests.utils.quote(query)}"
             print(f"   Searching: {query}")
@@ -33,28 +31,25 @@ class RealSearchTool:
             response = requests.get(url, headers=headers, timeout=10)
             response.raise_for_status()
 
-            soup = BeautifulSoup(response.text, 'html.parser')
+            soup = BeautifulSoup(response.text, "html.parser")
             results = []
 
-            for result in soup.select('.result'):
-                title_elem = result.select_one('.result__a')
-                snippet_elem = result.select_one('.result__snippet')
+            for result in soup.select(".result"):
+                title_elem = result.select_one(".result__a")
+                snippet_elem = result.select_one(".result__snippet")
 
                 if title_elem:
-                    results.append({
-                        'title': title_elem.get_text(strip=True),
-                        'url': title_elem.get('href', ''),
-                        'snippet': snippet_elem.get_text(strip=True) if snippet_elem else ''
-                    })
+                    results.append(
+                        {
+                            "title": title_elem.get_text(strip=True),
+                            "url": title_elem.get("href", ""),
+                            "snippet": snippet_elem.get_text(strip=True) if snippet_elem else "",
+                        }
+                    )
 
             print(f"   Found {len(results)} results")
 
-            return {
-                "success": True,
-                "query": query,
-                "results": results[:5],
-                "total": len(results)
-            }
+            return {"success": True, "query": query, "results": results[:5], "total": len(results)}
 
         except Exception as e:
             return {"success": False, "error": str(e), "results": []}
@@ -68,9 +63,9 @@ async def test_real_search():
     print()
 
     # Debug: Check environment variables
-    is_live = os.environ.get("AGENTTRACE_LIVE") == "1"
-    print(f"[DEBUG] AGENTTRACE_LIVE: {os.environ.get('AGENTTRACE_LIVE')}")
-    print(f"[DEBUG] AGENTTRACE_RUN_ID: {os.environ.get('AGENTTRACE_RUN_ID')}")
+    is_live = os.environ.get("WATCHTOWER_LIVE") == "1"
+    print(f"[DEBUG] WATCHTOWER_LIVE: {os.environ.get('WATCHTOWER_LIVE')}")
+    print(f"[DEBUG] WATCHTOWER_RUN_ID: {os.environ.get('WATCHTOWER_RUN_ID')}")
     print(f"[DEBUG] Live mode enabled: {is_live}")
     print()
 
@@ -79,7 +74,7 @@ async def test_real_search():
         trace_dir="~/.watchtower/traces",
         enable_file=True,
         enable_stdout=is_live,
-        run_id=os.environ.get("AGENTTRACE_RUN_ID"),
+        run_id=os.environ.get("WATCHTOWER_RUN_ID"),
     )
 
     print(f"Run ID: {plugin.run_id}")
@@ -99,76 +94,47 @@ async def test_real_search():
 
     print("Step 2: LLM decides to search...")
     callback_ctx = SimpleNamespace(state={})
-    llm_request = SimpleNamespace(
-        model="gemini-2.0-flash",
-        contents=[query],
-        tools=[search_tool]
-    )
-    await plugin.before_model_callback(
-        callback_context=callback_ctx,
-        llm_request=llm_request
-    )
+    llm_request = SimpleNamespace(model="gemini-2.0-flash", contents=[query], tools=[search_tool])
+    await plugin.before_model_callback(callback_context=callback_ctx, llm_request=llm_request)
 
     await asyncio.sleep(0.2)
 
     llm_response = SimpleNamespace(
         usage=SimpleNamespace(input_tokens=50, output_tokens=30, total_tokens=80),
         finish_reason="tool_calls",
-        tool_calls=["search"]
+        tool_calls=["search"],
     )
-    await plugin.after_model_callback(
-        callback_context=callback_ctx,
-        llm_response=llm_response
-    )
+    await plugin.after_model_callback(callback_context=callback_ctx, llm_response=llm_response)
 
     print("Step 3: Executing REAL web search...")
-    tool_ctx = SimpleNamespace(
-        state={},
-        agent_name="search_agent",
-        function_call_id="call_001"
-    )
+    tool_ctx = SimpleNamespace(state={}, agent_name="search_agent", function_call_id="call_001")
     tool_args = {"query": query}
 
-    await plugin.before_tool_callback(
-        tool=search_tool,
-        tool_args=tool_args,
-        tool_context=tool_ctx
-    )
+    await plugin.before_tool_callback(tool=search_tool, tool_args=tool_args, tool_context=tool_ctx)
 
     # ACTUALLY SEARCH THE WEB!
     search_results = search_tool(query)
 
     await plugin.after_tool_callback(
-        tool=search_tool,
-        tool_args=tool_args,
-        tool_context=tool_ctx,
-        tool_response=search_results
+        tool=search_tool, tool_args=tool_args, tool_context=tool_ctx, result=search_results
     )
 
     print()
     print("Step 4: LLM processes results...")
     callback_ctx = SimpleNamespace(state={})
     llm_request = SimpleNamespace(
-        model="gemini-2.0-flash",
-        contents=[f"Results: {search_results}"],
-        tools=[]
+        model="gemini-2.0-flash", contents=[f"Results: {search_results}"], tools=[]
     )
-    await plugin.before_model_callback(
-        callback_context=callback_ctx,
-        llm_request=llm_request
-    )
+    await plugin.before_model_callback(callback_context=callback_ctx, llm_request=llm_request)
 
     await asyncio.sleep(0.3)
 
     llm_response = SimpleNamespace(
         usage=SimpleNamespace(input_tokens=200, output_tokens=100, total_tokens=300),
         finish_reason="stop",
-        tool_calls=None
+        tool_calls=None,
     )
-    await plugin.after_model_callback(
-        callback_context=callback_ctx,
-        llm_response=llm_response
-    )
+    await plugin.after_model_callback(callback_context=callback_ctx, llm_response=llm_response)
 
     print("Step 5: Ending agent run...")
     await plugin.after_run_callback(invocation_context=ctx)
@@ -183,7 +149,7 @@ async def test_real_search():
         print(f"Results Found: {search_results['total']}")
         print()
         print("Top Results:")
-        for i, result in enumerate(search_results['results'], 1):
+        for i, result in enumerate(search_results["results"], 1):
             print(f"{i}. {result['title']}")
             print(f"   {result['snippet'][:100]}...")
             print()
@@ -199,22 +165,23 @@ async def test_real_search():
 
             # Display trace summary
             print("Trace Events:")
-            with open(trace_path, 'r') as f:
+            with open(trace_path, "r") as f:
                 import json
+
                 for i, line in enumerate(f, 1):
                     event = json.loads(line)
-                    event_type = event.get('type', 'unknown')
+                    event_type = event.get("type", "unknown")
 
-                    if event_type == 'llm.response':
-                        tokens = event.get('total_tokens', 0)
-                        duration = event.get('duration_ms', 0)
+                    if event_type == "llm.response":
+                        tokens = event.get("total_tokens", 0)
+                        duration = event.get("duration_ms", 0)
                         print(f"  {i}. {event_type:20} | {tokens:4} tokens | {duration:.0f}ms")
-                    elif event_type == 'tool.end':
-                        duration = event.get('duration_ms', 0)
-                        tool = event.get('tool_name', 'unknown')
+                    elif event_type == "tool.end":
+                        duration = event.get("duration_ms", 0)
+                        tool = event.get("tool_name", "unknown")
                         print(f"  {i}. {event_type:20} | {tool:15} | {duration:.0f}ms")
-                    elif event_type == 'run.end':
-                        summary = event.get('summary', {})
+                    elif event_type == "run.end":
+                        summary = event.get("summary", {})
                         print(f"  {i}. {event_type:20} | Summary: {summary}")
                     else:
                         print(f"  {i}. {event_type}")

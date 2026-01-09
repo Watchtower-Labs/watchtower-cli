@@ -5,85 +5,96 @@
 import {useInput, useApp} from 'ink';
 import type {KeyboardHandlers} from '../lib/types.js';
 
+// Check if running in TTY mode (supports raw input)
+const isTTY = process.stdin.isTTY ?? false;
+
 export function useKeyboard(handlers: KeyboardHandlers): void {
 	const {exit} = useApp();
 
-	useInput((input, key) => {
-		// Quit handlers
-		if (input === 'q' || (key.ctrl && input === 'c')) {
-			handlers.onQuit?.();
-			exit();
-			return;
-		}
+	useInput(
+		(input, key) => {
+			// Quit handlers
+			if (input === 'q' || (key.ctrl && input === 'c')) {
+				handlers.onQuit?.();
+				exit();
+				return;
+			}
 
-		// Navigation - Arrow keys
-		if (key.upArrow) {
-			handlers.onUp?.();
-			return;
-		}
+			// Navigation - Arrow keys
+			if (key.upArrow) {
+				handlers.onUp?.();
+				return;
+			}
 
-		if (key.downArrow) {
-			handlers.onDown?.();
-			return;
-		}
+			if (key.downArrow) {
+				handlers.onDown?.();
+				return;
+			}
 
-		// Navigation - Vim keys
-		if (input === 'k') {
-			handlers.onUp?.();
-			return;
-		}
+			// Navigation - Vim keys
+			if (input === 'k') {
+				handlers.onUp?.();
+				return;
+			}
 
-		if (input === 'j') {
-			handlers.onDown?.();
-			return;
-		}
+			if (input === 'j') {
+				handlers.onDown?.();
+				return;
+			}
 
-		// Enter/Select
-		if (key.return) {
-			handlers.onEnter?.();
-			return;
-		}
+			// Enter/Select
+			if (key.return) {
+				handlers.onEnter?.();
+				return;
+			}
 
-		// Back/Escape
-		if (key.escape) {
-			handlers.onEscape?.();
-			handlers.onBack?.();
-			return;
-		}
+			// Back/Escape
+			if (key.escape) {
+				handlers.onEscape?.();
+				handlers.onBack?.();
+				return;
+			}
 
-		if (input === 'b') {
-			handlers.onBack?.();
-			return;
-		}
+			if (input === 'b') {
+				handlers.onBack?.();
+				return;
+			}
 
-		// Pause (for live view)
-		if (input === 'p') {
-			handlers.onPause?.();
-			return;
-		}
+			// Pause (for live view)
+			if (input === 'p') {
+				handlers.onPause?.();
+				return;
+			}
 
-		// Page navigation
-		if (key.pageUp || input === 'u') {
-			handlers.onPageUp?.();
-			return;
-		}
+			// Page navigation
+			if (key.pageUp || input === 'u') {
+				handlers.onPageUp?.();
+				return;
+			}
 
-		if (key.pageDown || input === 'd') {
-			handlers.onPageDown?.();
-			return;
-		}
+			if (key.pageDown || input === 'd') {
+				handlers.onPageDown?.();
+				return;
+			}
 
-		// Home/End
-		if (input === 'g') {
-			handlers.onHome?.();
-			return;
-		}
+			// Home/End
+			if (input === 'g') {
+				handlers.onHome?.();
+				return;
+			}
 
-		if (input === 'G') {
-			handlers.onEnd?.();
-			return;
-		}
-	});
+			if (input === 'G') {
+				handlers.onEnd?.();
+				return;
+			}
+
+			// Custom key handler for additional shortcuts
+			if (handlers.onCustom && input) {
+				handlers.onCustom(input);
+			}
+		},
+		{isActive: isTTY},
+	);
 }
 
 export default useKeyboard;

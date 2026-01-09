@@ -2,10 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ========================================
+   CINEMATIC EDITORIAL DESIGN SYSTEM
+   Premium dark theme with glass effects
+   ======================================== */
+
 :root {
-  --background: #0a0a0a;
-  --foreground: #ffffff;
+  /* Core colors */
+  --background: #000000;
+  --foreground: #FFFFFF;
+  --surface: #0A0A0A;
+  --surface-elevated: #141414;
+
+  /* Text hierarchy */
+  --text-primary: #FFFFFF;
+  --text-secondary: #A1A1AA;
+  --text-muted: #71717A;
+
+  /* Borders */
+  --border: rgba(255, 255, 255, 0.1);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+
+  /* Glass effects */
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-hover: rgba(255, 255, 255, 0.08);
+
+  /* Accent */
+  --accent-glow: rgba(120, 119, 198, 0.15);
 }
+
+/* ========================================
+   BASE STYLES
+   ======================================== */
 
 html {
   scroll-behavior: smooth;
@@ -14,68 +43,347 @@ html {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar */
+/* Elegant scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a1a1a;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #333;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #444;
+  background: rgba(255, 255, 255, 0.2);
 }
 
-/* Gradient text */
-.gradient-text {
-  background: linear-gradient(135deg, #814AC8, #df7afe);
+/* Selection */
+::selection {
+  background: rgba(120, 119, 198, 0.3);
+  color: #FFFFFF;
+}
+
+/* Focus styles - elegant */
+*:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+/* ========================================
+   TYPOGRAPHY
+   ======================================== */
+
+/* Editorial serif headlines */
+.font-editorial {
+  font-family: var(--font-serif), 'Playfair Display', Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+/* Display text - using direct styles to avoid circular @apply */
+.text-display {
+  font-family: var(--font-serif), 'Playfair Display', Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  font-size: 5rem;
+  line-height: 1;
+}
+
+.text-headline {
+  font-family: var(--font-serif), 'Playfair Display', Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  font-size: 3rem;
+  line-height: 1.1;
+}
+
+/* Body text with better readability */
+.text-body {
+  @apply font-sans text-gray-300 leading-relaxed;
+}
+
+.text-body-sm {
+  @apply font-sans text-sm text-gray-400 leading-relaxed;
+}
+
+/* ========================================
+   GLASS COMPONENTS
+   ======================================== */
+
+/* Glass card effect */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+}
+
+.glass-hover {
+  @apply glass transition-all duration-standard ease-elegant;
+}
+
+.glass-hover:hover {
+  background: var(--glass-hover);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 40px rgba(255, 255, 255, 0.05);
+}
+
+/* Glass card with inner glow */
+.glass-card {
+  @apply glass rounded-2xl p-6;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* ========================================
+   BUTTONS - Ghost + Solid Pattern
+   ======================================== */
+
+/* Base button */
+.btn {
+  @apply inline-flex items-center justify-center font-medium transition-all duration-standard ease-elegant;
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black;
+}
+
+/* Solid button - white on dark */
+.btn-solid {
+  @apply btn px-8 py-4 bg-white text-black rounded-full;
+  @apply hover:bg-gray-100 hover:scale-[1.02] active:scale-[0.98];
+}
+
+/* Ghost button - border only */
+.btn-ghost {
+  @apply btn px-8 py-4 bg-transparent text-white border border-white/20 rounded-full;
+  @apply hover:bg-white/5 hover:border-white/30 active:bg-white/10;
+}
+
+/* Small variants */
+.btn-solid-sm {
+  @apply btn px-5 py-2.5 text-sm bg-white text-black rounded-full;
+  @apply hover:bg-gray-100;
+}
+
+.btn-ghost-sm {
+  @apply btn px-5 py-2.5 text-sm bg-transparent text-white border border-white/20 rounded-full;
+  @apply hover:bg-white/5 hover:border-white/30;
+}
+
+/* ========================================
+   STATUS BADGES
+   ======================================== */
+
+.badge {
+  @apply inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-full;
+}
+
+.badge-pending {
+  @apply badge bg-warning-muted text-warning;
+}
+
+.badge-approved {
+  @apply badge bg-success-muted text-success;
+}
+
+.badge-rejected {
+  @apply badge bg-error-muted text-error;
+}
+
+.badge-running {
+  @apply badge bg-info-muted text-info;
+}
+
+/* Status dot */
+.status-dot {
+  @apply w-2 h-2 rounded-full;
+}
+
+.status-dot-pending {
+  @apply status-dot bg-warning animate-pulse-soft;
+}
+
+.status-dot-approved {
+  @apply status-dot bg-success;
+}
+
+.status-dot-error {
+  @apply status-dot bg-error;
+}
+
+.status-dot-running {
+  @apply status-dot bg-info animate-pulse-soft;
+}
+
+/* ========================================
+   GRADIENTS & BACKGROUNDS
+   ======================================== */
+
+/* Dramatic mesh gradient background */
+.bg-mesh {
+  background:
+    radial-gradient(at 40% 20%, rgba(120, 119, 198, 0.15) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, rgba(255, 255, 255, 0.03) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, rgba(120, 119, 198, 0.1) 0px, transparent 50%),
+    radial-gradient(at 80% 80%, rgba(120, 119, 198, 0.08) 0px, transparent 50%);
+}
+
+/* Spotlight from top */
+.bg-spotlight {
+  background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(120, 119, 198, 0.2), transparent);
+}
+
+/* Subtle noise texture */
+.bg-noise {
+  position: relative;
+}
+
+.bg-noise::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+}
+
+/* Fade to black at bottom */
+.bg-fade-bottom {
+  background: linear-gradient(to bottom, transparent 0%, black 100%);
+}
+
+/* ========================================
+   DIVIDERS
+   ======================================== */
+
+.divider {
+  @apply h-px bg-gradient-to-r from-transparent via-white/10 to-transparent;
+}
+
+.divider-vertical {
+  @apply w-px bg-gradient-to-b from-transparent via-white/10 to-transparent;
+}
+
+/* ========================================
+   CODE & TERMINAL
+   ======================================== */
+
+.code-block {
+  @apply font-mono text-sm bg-code-bg border border-code-border rounded-xl p-4;
+  font-feature-settings: "calt" 1, "liga" 1;
+  tab-size: 2;
+}
+
+/* Syntax highlighting - editorial colors */
+.syntax-keyword { color: #C084FC; }
+.syntax-string { color: #4ADE80; }
+.syntax-number { color: #FBBF24; }
+.syntax-comment { color: #71717A; }
+.syntax-function { color: #60A5FA; }
+.syntax-variable { color: #F472B6; }
+.syntax-operator { color: #94A3B8; }
+.syntax-type { color: #2DD4BF; }
+
+/* ========================================
+   CONTAINERS
+   ======================================== */
+
+.container-tight {
+  @apply max-w-4xl mx-auto px-6;
+}
+
+.container-wide {
+  @apply max-w-7xl mx-auto px-6;
+}
+
+.container-full {
+  @apply max-w-full mx-auto px-6 lg:px-12;
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+/* Stagger children animations */
+.stagger-children > * {
+  opacity: 0;
+  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 100ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 300ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 400ms; }
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Shimmer loading effect */
+.shimmer {
+  @apply relative overflow-hidden bg-white/5;
+}
+
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.05),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+/* ========================================
+   UTILITIES
+   ======================================== */
+
+/* Hide scrollbar but keep functionality */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Text gradient - using a purple/violet accent for visibility */
+.text-gradient {
+  background: linear-gradient(135deg, #C084FC 0%, #A855F7 50%, #7C3AED 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Gradient border */
-.gradient-border {
-  position: relative;
-  background: #0a0a0a;
-  border-radius: 12px;
+/* Subtle text shadow for depth */
+.text-shadow {
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 }
 
-.gradient-border::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 12px;
-  padding: 1px;
-  background: linear-gradient(135deg, #814AC8, #df7afe);
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
-
-/* Glow effect */
-.glow {
-  box-shadow: 0 0 40px rgba(129, 74, 200, 0.3);
-}
-
-.glow-hover:hover {
-  box-shadow: 0 0 60px rgba(129, 74, 200, 0.4);
-}
-
-/* Selection */
-::selection {
-  background: rgba(129, 74, 200, 0.4);
-  color: #fff;
+/* Grid pattern background */
+.grid-pattern {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
 }

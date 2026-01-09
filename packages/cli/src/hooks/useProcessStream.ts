@@ -2,12 +2,49 @@
  * Hook for spawning Python processes and streaming events
  */
 
-import {useState, useEffect, useRef, useCallback} from 'react';
+import {useState, useEffect, useRef, useCallback, useLayoutEffect} from 'react';
 import {spawn, type ChildProcess} from 'node:child_process';
 import * as readline from 'node:readline';
+import * as os from 'node:os';
 import {v4 as uuidv4} from 'uuid';
 import type {TraceEvent, ProcessStatus, LiveStats} from '../lib/types.js';
 import {parseJsonRpc, parseLine} from '../lib/parser.js';
+
+/**
+ * Platform-aware process termination helper.
+ *
+ * Windows Signal Behavior:
+ * - Windows does not fully support POSIX signals (SIGTERM, SIGINT, etc.)
+ * - Node.js emulates some signals on Windows, but behavior differs:
+ *   - SIGTERM: May not be delivered reliably; Node uses TerminateProcess()
+ *   - SIGKILL: Unconditionally terminates (cannot be trapped)
+ *   - SIGBREAK: Can be sent to console processes (more reliable than SIGTERM)
+ * - The default proc.kill() on Windows effectively terminates the process
+ *
+ * Limitations:
+ * - This helper terminates only the direct child process
+ * - Child process trees (subprocesses spawned by the child) may be orphaned
+ * - For production use with complex process trees, consider using tree-kill
+ *   or similar libraries that use `taskkill /T` on Windows
+ *
+ * Current approach is sufficient for typical CLI usage where the spawned
+ * Python process doesn't spawn additional long-running children.
+ */
+const isWindows = os.platform() === 'win32';
+
+function killProcess(proc: ChildProcess): void {
+	// Prevent double-termination errors
+	if (proc.killed) return;
+
+	if (isWindows) {
+		// Windows: Use default kill which terminates via TerminateProcess()
+		// SIGTERM is unreliable on Windows; default kill is more effective
+		proc.kill();
+	} else {
+		// Unix-like systems: Use graceful SIGTERM to allow cleanup
+		proc.kill('SIGTERM');
+	}
+}
 
 export interface UseProcessStreamResult {
 	status: ProcessStatus;
@@ -36,13 +73,16 @@ export function useProcessStream(
 	const processRef = useRef<ChildProcess | null>(null);
 	const startTimeRef = useRef<number>(Date.now());
 
-	// Stable event handler
-	const stableOnEvent = useCallback(onEvent, [onEvent]);
+	// Use ref for event callback to avoid stale closures and effect re-runs
+	const onEventRef = useRef(onEvent);
+	useLayoutEffect(() => {
+		onEventRef.current = onEvent;
+	});
 
 	// Stop function
 	const stop = useCallback(() => {
-		if (processRef.current && !processRef.current.killed) {
-			processRef.current.kill('SIGTERM');
+		if (processRef.current) {
+			killProcess(processRef.current);
 		}
 	}, []);
 
@@ -69,8 +109,8 @@ export function useProcessStream(
 			env: {
 				...process.env,
 				PYTHONUNBUFFERED: '1',
-				AGENTTRACE_LIVE: '1',
-				AGENTTRACE_RUN_ID: runId.current,
+				WATCHTOWER_LIVE: '1',
+				WATCHTOWER_RUN_ID: runId.current,
 			},
 		});
 
@@ -134,8 +174,8 @@ export function useProcessStream(
 						return newStats;
 					});
 
-					// Emit event to caller
-					stableOnEvent(event);
+					// Emit event to caller (use ref to avoid stale closure)
+					onEventRef.current(event);
 				}
 			});
 		}
@@ -154,11 +194,12 @@ export function useProcessStream(
 
 		// Cleanup on unmount
 		return () => {
-			if (processRef.current && !processRef.current.killed) {
-				processRef.current.kill('SIGTERM');
+			if (processRef.current) {
+				killProcess(processRef.current);
 			}
 		};
-	}, [script, stableOnEvent]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- onEventRef is stable
+	}, [script]);
 
 	return {
 		status,

@@ -13,9 +13,16 @@ Example:
     ...     agent=agent,
     ...     plugins=[AgentTracePlugin()]
     ... )
+
+Logging:
+    Watchtower uses Python's logging module. Configure it as needed:
+    >>> import logging
+    >>> logging.getLogger("watchtower").setLevel(logging.DEBUG)
+
+    By default, watchtower logs warnings and errors to stderr.
 """
 
-__version__ = "0.1.0"
+import logging
 
 from watchtower.plugin import AgentTracePlugin
 from watchtower.config import WatchtowerConfig
@@ -33,6 +40,25 @@ from watchtower.models.events import (
     AgentTransferEvent,
     RunSummary,
 )
+from watchtower.exceptions import (
+    WatchtowerError,
+    WatchtowerWriteError,
+    WatchtowerSerializationError,
+    WatchtowerExtractionError,
+    WatchtowerConfigError,
+)
+
+__version__ = "0.1.0"
+
+# Configure watchtower logger
+logger = logging.getLogger("watchtower")
+
+# Set up a handler if none exists (prevents "No handler found" warnings)
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(name)s: %(levelname)s: %(message)s"))
+    logger.addHandler(handler)
+    logger.setLevel(logging.WARNING)  # Default to WARNING level
 
 __all__ = [
     "AgentTracePlugin",
@@ -50,4 +76,10 @@ __all__ = [
     "StateChangeEvent",
     "AgentTransferEvent",
     "RunSummary",
+    # Exceptions
+    "WatchtowerError",
+    "WatchtowerWriteError",
+    "WatchtowerSerializationError",
+    "WatchtowerExtractionError",
+    "WatchtowerConfigError",
 ]

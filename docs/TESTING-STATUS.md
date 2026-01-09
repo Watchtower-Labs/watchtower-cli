@@ -147,7 +147,7 @@ await plugin.after_run_callback(invocation_context=ctx)
 - ✅ Plugin callback system works correctly
 - ✅ Events are created with correct format
 - ✅ File writer saves JSONL correctly
-- ✅ Stdout writer emits JSON-RPC when `AGENTTRACE_LIVE=1`
+- ✅ Stdout writer emits JSON-RPC when `WATCHTOWER_LIVE=1`
 - ✅ Event collector calculates statistics
 - ✅ Real tool execution (DuckDuckGo web search)
 
@@ -182,7 +182,7 @@ await plugin.after_run_callback(invocation_context=ctx)
 Watchtower SDK - Real Web Search Test
 ======================================================================
 
-[DEBUG] AGENTTRACE_LIVE: 1
+[DEBUG] WATCHTOWER_LIVE: 1
 [DEBUG] Live mode enabled: True
 Run ID: ab3a6a4d
 [DEBUG] Stdout writer enabled: True
@@ -490,7 +490,7 @@ Both tests capture the same event types, just triggered differently:
 3. **Integration**
    - ✅ SDK writes JSONL files correctly
    - ✅ CLI reads JSONL files correctly
-   - ✅ Live streaming works (AGENTTRACE_LIVE=1)
+   - ✅ Live streaming works (WATCHTOWER_LIVE=1)
    - ✅ Environment variables passed correctly
    - ✅ Plugin attaches to ADK runners
 

@@ -77,12 +77,12 @@ watchtower tail -- python my_agent.py --config prod.yaml --user alice`}
               <td className="py-3">Disable Python output buffering</td>
             </tr>
             <tr className="border-b border-white/10">
-              <td className="py-3 font-mono text-primary">AGENTTRACE_LIVE</td>
+              <td className="py-3 font-mono text-primary">WATCHTOWER_LIVE</td>
               <td className="py-3 font-mono">1</td>
               <td className="py-3">Signal SDK to enable stdout streaming</td>
             </tr>
             <tr className="border-b border-white/10">
-              <td className="py-3 font-mono text-primary">AGENTTRACE_RUN_ID</td>
+              <td className="py-3 font-mono text-primary">WATCHTOWER_RUN_ID</td>
               <td className="py-3 font-mono">{'<uuid>'}</td>
               <td className="py-3">Unique run identifier</td>
             </tr>
@@ -127,8 +127,8 @@ watchtower tail -- python my_agent.py --config prod.yaml --user alice`}
 from watchtower import AgentTracePlugin
 
 plugin = AgentTracePlugin(
-    enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1",
-    run_id=os.environ.get("AGENTTRACE_RUN_ID"),
+    enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1",
+    run_id=os.environ.get("WATCHTOWER_RUN_ID"),
 )`}
         </pre>
       </div>

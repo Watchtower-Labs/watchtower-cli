@@ -154,8 +154,8 @@ The CLI automatically sets these environment variables for the spawned process:
 | Variable | Value | Purpose |
 |----------|-------|---------|
 | `PYTHONUNBUFFERED` | `1` | Disable Python output buffering |
-| `AGENTTRACE_LIVE` | `1` | Signal SDK to enable stdout streaming |
-| `AGENTTRACE_RUN_ID` | `<uuid>` | Unique run identifier |
+| `WATCHTOWER_LIVE` | `1` | Signal SDK to enable stdout streaming |
+| `WATCHTOWER_RUN_ID` | `<uuid>` | Unique run identifier |
 
 **Examples:**
 
@@ -200,8 +200,8 @@ import os
 from watchtower import AgentTracePlugin
 
 plugin = AgentTracePlugin(
-    enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1",
-    run_id=os.environ.get("AGENTTRACE_RUN_ID"),
+    enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1",
+    run_id=os.environ.get("WATCHTOWER_RUN_ID"),
 )
 ```
 
@@ -338,7 +338,7 @@ Traces are stored in:
 ~/.watchtower/traces/
 ```
 
-This can be overridden by setting `AGENTTRACE_DIR` environment variable.
+This can be overridden by setting `WATCHTOWER_TRACE_DIR` environment variable.
 
 ---
 
@@ -485,7 +485,7 @@ The Python script failed. Check:
 
 1. **SDK not configured for stdout:**
    ```python
-   enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1"
+   enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1"
    ```
 
 2. **Python buffering output:** CLI sets `PYTHONUNBUFFERED=1`, but verify your script doesn't override.
