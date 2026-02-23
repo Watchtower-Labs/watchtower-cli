@@ -2,12 +2,50 @@
  * Hook for spawning Python processes and streaming events
  */
 
-import {useState, useEffect, useRef, useCallback} from 'react';
+import {useState, useEffect, useRef, useCallback, useLayoutEffect} from 'react';
 import {spawn, type ChildProcess} from 'node:child_process';
 import * as readline from 'node:readline';
+import * as os from 'node:os';
 import {v4 as uuidv4} from 'uuid';
 import type {TraceEvent, ProcessStatus, LiveStats} from '../lib/types.js';
 import {parseJsonRpc, parseLine} from '../lib/parser.js';
+import {createRateLimiter} from '../lib/rate-limiter.js';
+
+/**
+ * Platform-aware process termination helper.
+ *
+ * Windows Signal Behavior:
+ * - Windows does not fully support POSIX signals (SIGTERM, SIGINT, etc.)
+ * - Node.js emulates some signals on Windows, but behavior differs:
+ *   - SIGTERM: May not be delivered reliably; Node uses TerminateProcess()
+ *   - SIGKILL: Unconditionally terminates (cannot be trapped)
+ *   - SIGBREAK: Can be sent to console processes (more reliable than SIGTERM)
+ * - The default proc.kill() on Windows effectively terminates the process
+ *
+ * Limitations:
+ * - This helper terminates only the direct child process
+ * - Child process trees (subprocesses spawned by the child) may be orphaned
+ * - For production use with complex process trees, consider using tree-kill
+ *   or similar libraries that use `taskkill /T` on Windows
+ *
+ * Current approach is sufficient for typical CLI usage where the spawned
+ * Python process doesn't spawn additional long-running children.
+ */
+const isWindows = os.platform() === 'win32';
+
+function killProcess(proc: ChildProcess): void {
+	// Prevent double-termination errors
+	if (proc.killed) return;
+
+	if (isWindows) {
+		// Windows: Use default kill which terminates via TerminateProcess()
+		// SIGTERM is unreliable on Windows; default kill is more effective
+		proc.kill();
+	} else {
+		// Unix-like systems: Use graceful SIGTERM to allow cleanup
+		proc.kill('SIGTERM');
+	}
+}
 
 export interface UseProcessStreamResult {
 	status: ProcessStatus;
@@ -20,6 +58,10 @@ export interface UseProcessStreamResult {
 export function useProcessStream(
 	script: string[],
 	onEvent: (event: TraceEvent) => void,
+	options?: {
+		maxEventsPerSecond?: number;
+		burstSize?: number;
+	},
 ): UseProcessStreamResult {
 	const [status, setStatus] = useState<ProcessStatus>('starting');
 	const [error, setError] = useState<string | null>(null);
@@ -30,19 +72,26 @@ export function useProcessStream(
 		toolCalls: 0,
 		tokens: 0,
 		errors: 0,
+		processedEvents: 0,
+		throttledEvents: 0,
+		isThrottling: false,
+		lastThrottleWaitMs: 0,
 	});
 
 	const runId = useRef(uuidv4().slice(0, 8));
 	const processRef = useRef<ChildProcess | null>(null);
 	const startTimeRef = useRef<number>(Date.now());
 
-	// Stable event handler
-	const stableOnEvent = useCallback(onEvent, [onEvent]);
+	// Use ref for event callback to avoid stale closures and effect re-runs
+	const onEventRef = useRef(onEvent);
+	useLayoutEffect(() => {
+		onEventRef.current = onEvent;
+	});
 
 	// Stop function
 	const stop = useCallback(() => {
-		if (processRef.current && !processRef.current.killed) {
-			processRef.current.kill('SIGTERM');
+		if (processRef.current) {
+			killProcess(processRef.current);
 		}
 	}, []);
 
@@ -69,8 +118,8 @@ export function useProcessStream(
 			env: {
 				...process.env,
 				PYTHONUNBUFFERED: '1',
-				AGENTTRACE_LIVE: '1',
-				AGENTTRACE_RUN_ID: runId.current,
+				WATCHTOWER_LIVE: '1',
+				WATCHTOWER_RUN_ID: runId.current,
 			},
 		});
 
@@ -88,8 +137,15 @@ export function useProcessStream(
 		});
 
 		// Parse stdout as NDJSON
+		let rl: readline.Interface | null = null;
+
 		if (proc.stdout) {
-			const rl = readline.createInterface({
+			const limiter = createRateLimiter({
+				maxEventsPerSecond: options?.maxEventsPerSecond ?? 120,
+				burstSize: options?.burstSize ?? 30,
+			});
+
+			rl = readline.createInterface({
 				input: proc.stdout,
 				crlfDelay: Infinity,
 			});
@@ -104,10 +160,40 @@ export function useProcessStream(
 				}
 
 				if (event) {
+					const isCriticalEvent =
+						event.type === 'run.start' ||
+						event.type === 'run.end' ||
+						event.type === 'tool.error';
+
+					let shouldProcess = true;
+					let waitTime = 0;
+
+					if (isCriticalEvent) {
+						limiter.forceProcess(event);
+					} else {
+						const result = limiter.check(event);
+						shouldProcess = result.shouldProcess;
+						waitTime = result.waitTime;
+					}
+
+					if (!shouldProcess) {
+						setStats(prev => ({
+							...prev,
+							duration: Date.now() - startTimeRef.current,
+							throttledEvents: prev.throttledEvents + 1,
+							isThrottling: true,
+							lastThrottleWaitMs: waitTime,
+						}));
+						return;
+					}
+
 					// Update stats based on event type
 					setStats(prev => {
 						const newStats = {...prev};
 						newStats.duration = Date.now() - startTimeRef.current;
+						newStats.processedEvents++;
+						newStats.isThrottling = false;
+						newStats.lastThrottleWaitMs = 0;
 
 						switch (event.type) {
 							case 'llm.response': {
@@ -134,8 +220,8 @@ export function useProcessStream(
 						return newStats;
 					});
 
-					// Emit event to caller
-					stableOnEvent(event);
+					// Emit event to caller (use ref to avoid stale closure)
+					onEventRef.current(event);
 				}
 			});
 		}
@@ -154,11 +240,12 @@ export function useProcessStream(
 
 		// Cleanup on unmount
 		return () => {
-			if (processRef.current && !processRef.current.killed) {
-				processRef.current.kill('SIGTERM');
+			rl?.close();
+			if (processRef.current) {
+				killProcess(processRef.current);
 			}
 		};
-	}, [script, stableOnEvent]);
+	}, [options?.burstSize, options?.maxEventsPerSecond, script]);
 
 	return {
 		status,

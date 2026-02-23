@@ -40,9 +40,9 @@ from watchtower import AgentTracePlugin
 # Create the plugin
 plugin = AgentTracePlugin(
     # Enable stdout streaming for live tail
-    enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1",
+    enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1",
     # Use run ID from CLI if provided
-    run_id=os.environ.get("AGENTTRACE_RUN_ID"),
+    run_id=os.environ.get("WATCHTOWER_RUN_ID"),
 )
 
 # Add to your agent

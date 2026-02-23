@@ -1,630 +1,323 @@
 # Watchtower Python SDK Guide
 
-The Watchtower Python SDK instruments [Google ADK](https://google.github.io/adk-docs/) agents to capture traces for debugging and observability.
+The Watchtower Python SDK provides observability for multiple AI agent frameworks, enabling you to debug and analyze agent behavior through structured trace files.
 
-> **Source Code:** The SDK is implemented on the [`feature/phase1-sdk-core`](https://github.com/Watchtower-Labs/watchtower-cli/tree/feature/phase1-sdk-core) branch.
+## Overview
 
-## Table of Contents
+**Supported Frameworks:**
 
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Configuration](#configuration)
-- [Environment Variables](#environment-variables)
-- [Event Types](#event-types)
-- [Trace File Format](#trace-file-format)
-- [Live Streaming](#live-streaming)
-- [Security](#security)
-- [Advanced Usage](#advanced-usage)
-- [Troubleshooting](#troubleshooting)
+| Framework | Status | Documentation |
+|-----------|--------|--------------|
+| Google ADK | ✅ Production | [Quick Start](#for-google-adk) |
+| Anthropic | ✅ Production | [Quick Start](#for-anthropic) | [Framework Docs](docs/MULTI_FRAMEWORK_SUPPORT.md) |
+| OpenAI | ✅ Production | [Quick Start](#for-openai) |
+| LangChain | 🚧 Coming Soon | - |
+
+All frameworks use a unified `AgentObserver` interface, providing consistent observability across different AI agent SDKs.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│         User Code / Application                  │
+│                                               │
+│  ┌─────────────┐          ┌─────────┐ │
+│  │   Your Agent    │          │ Framework │ │
+│  │                 │          │          │ │
+│  └─────────────┘          └─────────┘ │
+│                                               │
+├─────────────────────┐    ┌───────────────┐     │
+│ │  Framework Adapter            │   Watchtower   │
+│ └─────────────────────┘    └──────────────┘     │
+│                                               │
+└─────────────────────────────────────────────┘
+│                                               │
+└──────────────────────────────────────────────┘
+```
+
+### Key Components
+
+- **Core Abstractions** (`watchtower/core/interface.py`)
+  - `AgentObserver` - Abstract base class for framework observers
+  - Unified event types across all frameworks
+  - Framework-specific data structures
+
+- **Framework Adapters** (`watchtower/adapters/`)
+  - `google_adk.py` - Google ADK adapter (original plugin)
+  - `anthropic.py` - Anthropic Claude adapter
+  - `openai.py` - OpenAI GPT adapter
+
+- **Unified SDK** (`watchtower/sdk.py`)
+  - `Watchtower.create_observer()` - Auto-detect framework
+  - Framework-specific creators: `create_for_anthropic()`, `create_for_openai()`
+  - Backward compatible `AgentTracePlugin` export
+
+- **Writers** (`watchtower/writers/`)
+  - File writer - JSONL output to files
+  - Stdout writer - JSON-RPC streaming
+
+- **Utilities** (`watchtower/utils/`)
+  - Sanitization - Sensitive data redaction
+  - Validation - Input validation and security
+
+---
 
 ## Installation
 
+### Python SDK
+
 ```bash
-# Install from PyPI (when published)
 pip install watchtower-adk
-
-# Or install from source
-pip install git+https://github.com/Watchtower-Labs/watchtower-cli.git@feature/phase1-sdk-core
 ```
 
-**Requirements:**
-- Python 3.9+
-- google-adk >= 0.1.0
+The `watchtower-adk` package includes all SDK components needed for Google ADK.
 
-**Optional dependencies:**
+### Framework-Specific Dependencies
+
+For Anthropic:
 ```bash
-# For cloud storage backends (post-MVP)
-pip install "watchtower-adk[cloud]"
+pip install anthropic
 ```
+
+For OpenAI:
+```bash
+pip install openai
+```
+
+---
 
 ## Quick Start
 
-Add the `AgentTracePlugin` to your ADK runner:
+### Option 1: Google ADK (Original Usage - No Changes Needed)
 
 ```python
 from google.adk.agents import Agent
 from google.adk.runners import InMemoryRunner
 from watchtower import AgentTracePlugin
 
-# Define your agent
-agent = Agent(
-    name="my_agent",
-    model="gemini-2.0-flash",
-    instruction="You are a helpful assistant.",
-    tools=[my_tool],
-)
-
-# Create runner with tracing enabled
-runner = InMemoryRunner(
-    agent=agent,
-    app_name="my_app",
-    plugins=[AgentTracePlugin()],  # Add this line
-)
-
-# Run your agent - traces are automatically captured
-async for event in runner.run_async(user_id, session_id, message):
-    print(event.content)
+agent = Agent(name="my_agent", model="gemini-2.0-flash")
+plugin = AgentTracePlugin()
+runner = InMemoryRunner(agent=agent, plugins=[plugin])
+result = runner.run(user_message="Hello, how are you today?")
 ```
 
-Traces are saved to `~/.watchtower/traces/`.
+### Option 2: Anthropic Claude ⭐ NEW
+
+```python
+from watchtower.sdk import create_for_anthropic
+import os
+
+observer = create_for_anthropic(
+    api_key=os.environ.get("ANTHROPIC_API_KEY"),
+    model="claude-sonnet-4-20250514",
+)
+
+# Single call
+response = observer.observe_llm_call([
+    {"role": "user", "content": "What is 42?"}
+])
+
+print(response.content[0].text)
+
+# Streaming conversation
+messages = []
+while True:
+    user_input = input("You: ")
+    if user_input.lower() == 'exit':
+        break
+    messages.append({"role": "user", "content": user_input})
+    response = observer.observe_llm_call(messages)
+    print(f"Claude: {response.content[0].text}")
+    messages.append({
+        "role": "assistant",
+        "content": response.content[0].text
+    })
+```
+
+### Option 3: OpenAI GPT ⭐ NEW
+
+```python
+from watchtower.sdk import create_for_openai
+import os
+
+observer = create_for_openai(
+    api_key=os.environ.get("OPENAI_API_KEY"),
+    model="gpt-4o",
+)
+
+# With tools
+response = observer.observe_llm_call(
+    messages=[{"role": "user", "content": "Calculate 2 + 2"}],
+    tools=[{"type": "function", "function": {"name": "calculator", "description": "Performs calculations"}}],
+)
+)
+
+print(response.choices[0].message.content)
+```
+
+### Option 4: Auto-Detection (Framework-Agnostic)
+
+```python
+from watchtower.sdk import Watchtower
+
+# Automatically detects framework
+observer = Watchtower.create_observer(
+    trace_dir="./traces",
+    enable_stdout=True,
+)
+
+# Use same API regardless of which framework is installed
+# Works with Google ADK, Anthropic, or OpenAI
+```
+
+---
 
 ## Configuration
 
-### Constructor Options
+### SDK Options
 
-```python
-from watchtower import AgentTracePlugin
+All observers accept these common options:
 
-plugin = AgentTracePlugin(
-    trace_dir="~/.watchtower/traces",  # Directory for trace files
-    enable_file=True,                   # Write to files (default: True)
-    enable_stdout=False,                # Stream to stdout (default: False)
-    run_id=None,                        # Custom run ID (default: auto-generated)
-    sanitize=True,                      # Sanitize sensitive args (default: True)
-)
-```
+| Option | Type | Default | Description |
+|---------|------|---------|-------------|
+| `trace_dir` | string | `"~/.watchtower/traces"` | Trace directory |
+| `enable_file` | boolean | `true` | Write traces to files |
+| `enable_stdout` | boolean | `false` | Emit traces to stdout |
+| `run_id` | string | `None` | Custom run ID (auto-generated) |
+| `sanitize` | boolean | `true` | Sanitize sensitive data |
+| `dead_letter_retention_days` | number | `7` | Retention for dead-letter files |
+| `cleanup_dead_letter_on_start` | boolean | `true` | Auto-clean old dead-letter files on startup |
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `trace_dir` | `str` | `~/.watchtower/traces` | Directory for trace files |
-| `enable_file` | `bool` | `True` | Write traces to JSONL files |
-| `enable_stdout` | `bool` | `False` | Emit events to stdout (for CLI tailing) |
-| `run_id` | `str \| None` | Auto-generated | Unique identifier for this run |
-| `sanitize` | `bool` | `True` | Redact sensitive data from tool arguments |
+### Framework-Specific Options
 
-### Config File
+#### Anthropic
 
-`~/.watchtower/config.yaml`
+| Option | Type | Default |
+|--------|------|---------|
+| `api_key` | string | `None` | Anthropic API key (reads `ANTHROPIC_API_KEY`) |
+| `model` | string | `"claude-sonnet-4-20250514"` | Model to use |
 
-```yaml
-# Trace directory
-trace_dir: ~/.watchtower/traces
+#### OpenAI
 
-# Days to retain traces (for cleanup scripts)
-retention_days: 30
+| Option | Type | Default |
+|--------|------|---------|
+| `api_key` | string | `None` | OpenAI API key (reads `OPENAI_API_KEY`) |
+| `model` | string | `"gpt-4o"` | Model to use |
 
-# Events to buffer before writing
-buffer_size: 10
-
-# Redact sensitive tool arguments
-sanitize_args: true
-
-# Max characters for tool response previews
-max_response_preview: 500
-```
+---
 
 ## Environment Variables
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `AGENTTRACE_DIR` | Override trace directory | `/var/log/traces` |
-| `AGENTTRACE_LIVE` | Enable stdout streaming | `1` |
-| `AGENTTRACE_RUN_ID` | Override run ID | `abc123` |
-| `AGENTTRACE_DISABLE` | Disable all tracing | `1` |
+| Variable | Applies To | Description |
+|----------|------------|-------------|
+| `WATCHTOWER_TRACE_DIR` | All | Override trace directory location |
+| `WATCHTOWER_LIVE` | All | Enable stdout streaming (for CLI `watchtower tail`) |
+| `WATCHTOWER_RUN_ID` | All | Override auto-generated run ID |
+| `WATCHTOWER_DEFAULT_PYTHON` | All | Default Python executable validation target |
+| `ANTHROPIC_API_KEY` | Anthropic | Anthropic API key |
+| `OPENAI_API_KEY` | OpenAI | OpenAI API key |
+| `WATCHTOWER_DEBUG` | All | Enable debug logging |
 
-### Using Environment Variables
+---
 
-```python
-import os
-from watchtower import AgentTracePlugin
+## API Reference
 
-# Check if tracing should be disabled
-if os.environ.get("AGENTTRACE_DISABLE") != "1":
-    plugin = AgentTracePlugin(
-        trace_dir=os.environ.get("AGENTTRACE_DIR", "~/.watchtower/traces"),
-        enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1",
-        run_id=os.environ.get("AGENTTRACE_RUN_ID"),
-    )
-    runner = InMemoryRunner(agent=agent, plugins=[plugin])
-else:
-    runner = InMemoryRunner(agent=agent)
-```
+### Google ADK (AgentTracePlugin)
 
-## Event Types
+The original Watchtower plugin for Google ADK. See [plugin.py](../watchtower/plugin.py) for implementation details.
 
-The SDK captures these events from your agent:
-
-### Run Lifecycle
-
-#### `run.start`
-
-Emitted when an agent invocation begins.
-
-```json
-{
-  "type": "run.start",
-  "run_id": "abc123",
-  "timestamp": 1705329121.000,
-  "invocation_id": "inv_001",
-  "agent_name": "my_agent"
-}
-```
-
-#### `run.end`
-
-Emitted when an agent invocation completes.
-
-```json
-{
-  "type": "run.end",
-  "run_id": "abc123",
-  "timestamp": 1705329123.415,
-  "duration_ms": 2415,
-  "summary": {
-    "llm_calls": 2,
-    "tool_calls": 3,
-    "total_tokens": 2095,
-    "errors": 0
-  }
-}
-```
-
-### LLM Interactions
-
-#### `llm.request`
-
-Emitted before an LLM call.
-
-```json
-{
-  "type": "llm.request",
-  "run_id": "abc123",
-  "timestamp": 1705329121.012,
-  "request_id": "req_001",
-  "model": "gemini-2.0-flash",
-  "message_count": 2,
-  "tools_available": ["search_web", "write_file"]
-}
-```
-
-#### `llm.response`
-
-Emitted after receiving an LLM response.
-
-```json
-{
-  "type": "llm.response",
-  "run_id": "abc123",
-  "timestamp": 1705329121.847,
-  "request_id": "req_001",
-  "duration_ms": 835,
-  "input_tokens": 523,
-  "output_tokens": 680,
-  "total_tokens": 1203,
-  "has_tool_calls": true,
-  "finish_reason": "tool_calls"
-}
-```
-
-### Tool Execution
-
-#### `tool.start`
-
-Emitted when a tool begins execution.
-
-```json
-{
-  "type": "tool.start",
-  "run_id": "abc123",
-  "timestamp": 1705329121.850,
-  "tool_call_id": "tc_001",
-  "tool_name": "search_web",
-  "tool_args": {"query": "latest AI news"},
-  "agent_name": "my_agent"
-}
-```
-
-#### `tool.end`
-
-Emitted when a tool completes successfully.
-
-```json
-{
-  "type": "tool.end",
-  "run_id": "abc123",
-  "timestamp": 1705329122.341,
-  "tool_call_id": "tc_001",
-  "tool_name": "search_web",
-  "duration_ms": 491,
-  "response_preview": "Found 10 results...",
-  "success": true
-}
-```
-
-#### `tool.error`
-
-Emitted when a tool fails.
-
-```json
-{
-  "type": "tool.error",
-  "run_id": "abc123",
-  "timestamp": 1705329122.341,
-  "tool_call_id": "tc_001",
-  "tool_name": "search_web",
-  "error_type": "ConnectionError",
-  "error_message": "Failed to connect to search API"
-}
-```
-
-### State Management
-
-#### `state.change`
-
-Emitted when session state is modified.
-
-```json
-{
-  "type": "state.change",
-  "run_id": "abc123",
-  "timestamp": 1705329122.500,
-  "author": "search_web",
-  "state_delta": {
-    "search_results": ["Result 1", "Result 2"]
-  }
-}
-```
-
-### Multi-Agent
-
-#### `agent.transfer`
-
-Emitted during multi-agent handoffs.
-
-```json
-{
-  "type": "agent.transfer",
-  "run_id": "abc123",
-  "timestamp": 1705329122.600,
-  "from_agent": "router_agent",
-  "to_agent": "specialist_agent",
-  "reason": "User query requires specialized knowledge"
-}
-```
-
-## Trace File Format
-
-### File Naming
-
-```
-{date}_{run_id}.jsonl
-```
-
-Example: `2024-01-15_abc123.jsonl`
-
-### File Location
-
-```
-~/.watchtower/traces/
-├── 2024-01-15_abc123.jsonl
-├── 2024-01-15_def456.jsonl
-└── 2024-01-14_ghi789.jsonl
-```
-
-### JSONL Format
-
-Each line is a self-contained JSON object (newline-delimited JSON):
-
-```jsonl
-{"type":"run.start","run_id":"abc123","timestamp":1705329121.000,"agent_name":"my_agent"}
-{"type":"llm.request","run_id":"abc123","timestamp":1705329121.012,"model":"gemini-2.0-flash"}
-{"type":"llm.response","run_id":"abc123","timestamp":1705329121.847,"duration_ms":835,"total_tokens":1203}
-{"type":"run.end","run_id":"abc123","timestamp":1705329123.415,"duration_ms":2415}
-```
-
-## Live Streaming
-
-For real-time event streaming (used by `watchtower tail`), enable stdout output:
+### Anthropic (AnthropicObserver)
 
 ```python
-import os
-from watchtower import AgentTracePlugin
+from watchtower.sdk import create_for_anthropic
 
-# Detect CLI-spawned mode
-is_live = os.environ.get("AGENTTRACE_LIVE") == "1"
+observer = create_for_anthropic(api_key="your-key")
 
-plugin = AgentTracePlugin(
-    enable_stdout=is_live,
-    run_id=os.environ.get("AGENTTRACE_RUN_ID"),
-)
+# Methods
+response = observer.observe_llm_call(messages)
 ```
 
-### Live Stream Format
-
-When `enable_stdout=True`, events are emitted as JSON-RPC 2.0 notifications:
-
-```json
-{"jsonrpc":"2.0","method":"run.start","params":{"type":"run.start","run_id":"abc123","timestamp":1705329121.000}}
-{"jsonrpc":"2.0","method":"tool.start","params":{"type":"tool.start","run_id":"abc123","tool_name":"search_web"}}
-```
-
-### Automatic Detection
-
-The recommended pattern for supporting both file and live modes:
+### OpenAI (OpenAIObserver)
 
 ```python
-import os
-from watchtower import AgentTracePlugin
+from watchtower.sdk import create_for_openai
 
-def create_plugin():
-    """Create plugin configured for current environment."""
-    return AgentTracePlugin(
-        # Always write to files
-        enable_file=True,
-        # Enable stdout only when CLI is tailing
-        enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1",
-        # Use CLI-provided run ID if available
-        run_id=os.environ.get("AGENTTRACE_RUN_ID"),
-    )
+observer = create_for_openai(api_key="your-key", model="gpt-4o")
+
+# Methods
+response = observer.observe_llm_call(messages, tools=[...])
 ```
+
+---
 
 ## Security
 
-### Argument Sanitization
+### Data Sanitization
 
-By default, sensitive tool arguments are redacted:
+All observers automatically sanitize sensitive data from:
 
-```python
-# Original tool call
-tool_args = {
-    "api_key": "sk-1234567890abcdef",
-    "query": "search term"
-}
+- API keys
+- Passwords
+- Tokens
+- Secrets
+- And more patterns defined in [sanitization.py](../watchtower/utils/sanitization.py)
 
-# Stored in trace
-tool_args = {
-    "api_key": "[REDACTED]",
-    "query": "search term"
-}
-```
+### Input Validation
 
-**Patterns matched:**
-- `password`
-- `secret`
-- `token`
-- `api_key` / `api-key` / `apikey`
-- `auth`
-- `credential`
+All observers validate inputs to prevent:
 
-**Disable sanitization:**
+- Injection attacks
+- Directory traversal
+- Invalid characters in run IDs
+- Malformed API keys
 
-```yaml
-# ~/.watchtower/config.yaml
-sanitize_args: false
-```
+See [validation.py](../watchtower/utils/validation.py) for details.
 
 ### File Permissions
 
-The trace directory is created with restricted permissions:
+- Trace files are created with `0o700` (read/write only by owner)
+- Dead-letter files use same permissions
 
-- Directory: `0700` (owner read/write/execute only)
-- Files: `0600` (owner read/write only)
-
-### Local-Only
-
-The SDK operates entirely locally:
-- No network transmission of traces
-- No external service dependencies
-- No telemetry or analytics
-
-## Advanced Usage
-
-### Custom Run IDs
-
-```python
-import uuid
-
-plugin = AgentTracePlugin(
-    run_id=f"prod_{uuid.uuid4().hex[:8]}"
-)
-```
-
-### Multiple Writers
-
-```python
-# Write to both file and stdout
-plugin = AgentTracePlugin(
-    enable_file=True,
-    enable_stdout=True,
-)
-```
-
-### Custom Trace Directory
-
-```python
-plugin = AgentTracePlugin(
-    trace_dir="/var/log/agent-traces"
-)
-```
-
-### Conditional Tracing
-
-```python
-import os
-
-# Only trace in development
-if os.environ.get("ENVIRONMENT") == "development":
-    plugins = [AgentTracePlugin()]
-else:
-    plugins = []
-
-runner = InMemoryRunner(agent=agent, plugins=plugins)
-```
-
-### Accessing Trace Path
-
-```python
-plugin = AgentTracePlugin()
-# ... run agent ...
-
-# Get the path to the trace file
-trace_path = plugin.get_trace_path()
-print(f"Trace saved to: {trace_path}")
-```
+---
 
 ## Testing
 
-### Running Unit Tests
-
-The SDK includes comprehensive unit tests covering all core functionality:
+Run tests for the framework you're using:
 
 ```bash
-# Install dev dependencies
-pip install -e ".[dev]"
+# Google ADK
+pytest tests/test_basic.py
 
-# Run all unit tests
-pytest tests/test_basic.py -v
+# Anthropic (when implemented)
+pytest tests/test_anthropic.py
 
-# Run specific test
-pytest tests/test_basic.py::test_sanitize_args -v
-
-# Run with coverage
-pip install pytest-cov
-pytest tests/ --cov=watchtower --cov-report=html
-```
-
-### Integration Testing
-
-Test the SDK with real web searches:
-
-```bash
-# Run integration test with actual DuckDuckGo search
-python tests/test_real_search.py
-```
-
-This test:
-- Creates a real `AgentTracePlugin` instance
-- Performs actual web searches via DuckDuckGo
-- Captures all trace events (run, llm, tool)
-- Generates a complete trace file
-- Displays results and trace summary
-
-### Manual Testing
-
-Create a simple test script:
-
-```python
-import asyncio
-from types import SimpleNamespace
-from watchtower import AgentTracePlugin
-
-async def test():
-    plugin = AgentTracePlugin()
-
-    # Simulate run
-    ctx = SimpleNamespace(
-        invocation_id="test_001",
-        agent=SimpleNamespace(name="test_agent")
-    )
-    await plugin.before_run_callback(invocation_context=ctx)
-    await plugin.after_run_callback(invocation_context=ctx)
-
-    # Check trace file
-    trace_path = plugin.file_writer.get_trace_path()
-    print(f"Trace: {trace_path}")
-
-asyncio.run(test())
+# OpenAI (when implemented)
+pytest tests/test_openai.py
 ```
 
 ---
 
 ## Troubleshooting
 
-### Traces Not Being Created
+### Common Issues
 
-1. **Plugin not added:**
-   ```python
-   # Ensure plugin is in the list
-   plugins=[AgentTracePlugin()]
-   ```
+**Trace files not appearing:**
+1. Verify plugin is added to your runner
+2. Check trace directory exists
+3. Verify trace directory path
 
-2. **Tracing disabled:**
-   ```bash
-   # Check environment variable
-   echo $AGENTTRACE_DISABLE
-   ```
+**Events not captured:**
+1. Check observer is wrapping your API calls
+2. Enable debug mode to see what's happening
 
-3. **Permission denied:**
-   ```bash
-   # Check directory permissions
-   ls -la ~/.watchtower/
-   ```
-
-### Incomplete Traces
-
-1. **Agent crashed:** Traces are buffered. If the agent crashes before flush, some events may be lost.
-
-2. **Force flush:** Call `plugin.flush()` if needed:
-   ```python
-   try:
-       async for event in runner.run_async(...):
-           ...
-   finally:
-       plugin.flush()
-   ```
-
-### Large Trace Files
-
-1. **Reduce preview size:**
-   ```yaml
-   max_response_preview: 100
-   ```
-
-2. **Increase buffer:**
-   ```yaml
-   buffer_size: 50
-   ```
-
-3. **Set up retention:**
-   ```bash
-   # Delete traces older than 7 days
-   find ~/.watchtower/traces -name "*.jsonl" -mtime +7 -delete
-   ```
-
-### Live Streaming Not Working
-
-1. **Environment variable not set:**
-   ```python
-   # Verify AGENTTRACE_LIVE is set
-   print(os.environ.get("AGENTTRACE_LIVE"))
-   ```
-
-2. **Python buffering:**
-   ```bash
-   # Run with unbuffered output
-   PYTHONUNBUFFERED=1 python my_agent.py
-   ```
-
-3. **enable_stdout not set:**
-   ```python
-   enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1"
-   ```
+**Framework not detected:**
+1. Ensure framework SDK is installed
+2. Check imports are correct
 
 ---
 
-## See Also
+## Contributing
 
-- [CLI Guide](https://github.com/Watchtower-Labs/watchtower-cli/blob/main/docs/CLI.md) - Terminal interface
-- [Architecture](https://github.com/Watchtower-Labs/watchtower-cli/blob/main/docs/ARCHITECTURE.md) - System design
-- [Google ADK Documentation](https://google.github.io/adk-docs/)
-- [GitHub Repository](https://github.com/Watchtower-Labs/watchtower-cli)
+For guidelines on contributing to Watchtower, see [CONTRIBUTING.md](../CONTRIBUTING.md).
+
+For issues and questions, see the [GitHub Issues](https://github.com/Watchtower-Labs/watchtower-cli/issues).

@@ -57,11 +57,11 @@ async def main():
 
     # Create plugin
     plugin = AgentTracePlugin(
-        enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1",
-        run_id=os.environ.get("AGENTTRACE_RUN_ID"),
+        enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1",
+        run_id=os.environ.get("WATCHTOWER_RUN_ID"),
     )
 
-    print(f"Live mode: {os.environ.get('AGENTTRACE_LIVE') == '1'}")
+    print(f"Live mode: {os.environ.get('WATCHTOWER_LIVE') == '1'}")
     print(f"Run ID: {plugin.run_id}")
     print()
 

@@ -1,0 +1,103 @@
+name: Nightly Stress
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+jobs:
+  cli-nightly-stress:
+    name: cli-nightly-stress (Node ${{ matrix.node-version }} / ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node-version: ['18', '20']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install
+        shell: bash
+
+      - name: Build and run CLI tests
+        run: |
+          pnpm build:cli
+          pnpm --filter @watchtower/cli test
+        shell: bash
+
+      - name: Run CLI stress tests
+        run: |
+          pnpm --filter @watchtower/cli test:stress
+        shell: bash
+
+      - name: Capture CLI diagnostics
+        if: always()
+        run: |
+          mkdir -p artifacts
+          node packages/cli/dist/index.js --help > artifacts/cli-help.txt
+          echo "watchtower_stress=1" > artifacts/cli-stress-env.txt
+        shell: bash
+
+      - name: Upload CLI artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-nightly-${{ matrix.os }}-${{ matrix.node-version }}
+          path: artifacts/
+          retention-days: 14
+
+  py-nightly-matrix:
+    name: py-nightly-matrix (Python ${{ matrix.python-version }} / ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,test]"
+        shell: bash
+
+      - name: Run Python tests
+        run: pytest -q
+        shell: bash
+
+      - name: Collect diagnostics
+        if: always()
+        run: |
+          mkdir -p artifacts
+          python -V > artifacts/python-version.txt
+          pip freeze > artifacts/pip-freeze.txt
+        shell: bash
+
+      - name: Upload Python artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: py-nightly-${{ matrix.os }}-${{ matrix.python-version }}
+          path: artifacts/
+          retention-days: 14

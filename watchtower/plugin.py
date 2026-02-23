@@ -1,9 +1,18 @@
 """Main plugin implementation for Google ADK observability."""
 
+import logging
 import os
 import time
 import uuid
-from typing import Optional, List, Any, Dict
+from typing import Any, Dict, List, Optional
+
+from watchtower.utils.validation import (
+    sanitize_run_id,
+    validate_environment_variables,
+    validate_run_id,
+)
+
+logger = logging.getLogger("watchtower")
 
 try:
     from google.adk.plugins.base_plugin import BasePlugin
@@ -13,28 +22,35 @@ try:
     from google.adk.tools.base_tool import BaseTool
     from google.adk.tools.tool_context import ToolContext
     from google.adk.events import Event
+
     HAS_ADK = True
 except ImportError:
     # Allow import without ADK for development/testing
     HAS_ADK = False
 
-    class BasePlugin:
+    class BasePlugin:  # type: ignore[no-redef]
         """Mock BasePlugin for development without ADK."""
-        def __init__(self, name: str = ""):
+
+        def __init__(self, name: str = "") -> None:
             self.name = name
 
-    InvocationContext = Any
-    CallbackContext = Any
-    LlmRequest = Any
-    LlmResponse = Any
-    BaseTool = Any
-    ToolContext = Any
-    Event = Any
+    InvocationContext = Any  # type: ignore[misc,assignment]
+    CallbackContext = Any  # type: ignore[misc,assignment]
+    LlmRequest = Any  # type: ignore[misc,assignment]
+    LlmResponse = Any  # type: ignore[misc,assignment]
+    BaseTool = Any  # type: ignore[misc,assignment]
+    ToolContext = Any  # type: ignore[misc,assignment]
+    Event = Any  # type: ignore[misc,assignment]
 
-from watchtower.collector import EventCollector
-from watchtower.writers.file_writer import FileWriter
-from watchtower.writers.stdout_writer import StdoutWriter
-from watchtower.utils.sanitization import sanitize_args, truncate_response
+from watchtower.collector import EventCollector  # noqa: E402
+from watchtower.writers.file_writer import FileWriter  # noqa: E402
+from watchtower.writers.stdout_writer import StdoutWriter  # noqa: E402
+from watchtower.utils.sanitization import sanitize_args, truncate_response  # noqa: E402
+from watchtower.cleanup import cleanup_dead_letter_files  # noqa: E402
+from watchtower.exceptions import (  # noqa: E402
+    WatchtowerError,
+    WatchtowerWriteError,
+)
 
 
 class AgentTracePlugin(BasePlugin):
@@ -56,6 +72,9 @@ class AgentTracePlugin(BasePlugin):
         enable_stdout: bool = False,
         run_id: Optional[str] = None,
         sanitize: bool = True,
+        debug: bool = False,
+        dead_letter_retention_days: int = 7,
+        cleanup_dead_letter_on_start: bool = True,
     ):
         """Initialize the trace plugin.
 
@@ -65,15 +84,45 @@ class AgentTracePlugin(BasePlugin):
             enable_stdout: Whether to emit events to stdout (for live tailing)
             run_id: Custom run ID (auto-generated if None)
             sanitize: Whether to sanitize sensitive data from arguments
+            debug: Whether to raise exceptions instead of catching them.
+                   Can also be enabled via WATCHTOWER_DEBUG=1 environment variable.
+            dead_letter_retention_days: Retention period for dead-letter files.
+            cleanup_dead_letter_on_start: Whether to clean old dead-letter files
+                during initialization.
         """
         super().__init__(name="watchtower")
 
         self.collector = EventCollector()
         self.sanitize = sanitize
 
-        # Initialize writers
+        # Debug mode: re-raise exceptions instead of silently catching
+        self.debug = debug or os.environ.get("WATCHTOWER_DEBUG", "").lower() in (
+            "1",
+            "true",
+            "yes",
+        )
+
+        # Validate environment variables on startup
+        errors, is_valid = validate_environment_variables()
+        if not is_valid:
+            logger.warning(
+                f"Watchtower environment validation warnings: {errors}. "
+                "Proceeding with safe defaults or sanitization."
+            )
+
+        # Initialize writers (validation happens in FileWriter)
         self.file_writer = FileWriter(trace_dir) if enable_file else None
         self.stdout_writer = StdoutWriter() if enable_stdout else None
+
+        if cleanup_dead_letter_on_start and enable_file:
+            try:
+                cleanup_dead_letter_files(
+                    trace_dir=trace_dir,
+                    retention_days=dead_letter_retention_days,
+                    dry_run=False,
+                )
+            except Exception as e:
+                logger.warning("Dead-letter cleanup failed during startup: %s", e)
 
         # Generate or use provided run ID
         self.run_id = run_id or self._generate_run_id()
@@ -88,9 +137,23 @@ class AgentTracePlugin(BasePlugin):
             8-character unique identifier
         """
         # Check if CLI provided a run ID via environment
-        if os.environ.get("AGENTTRACE_RUN_ID"):
-            return os.environ["AGENTTRACE_RUN_ID"]
+        env_run_id = os.environ.get("WATCHTOWER_RUN_ID")
+        if env_run_id:
+            # Validate the provided run ID
+            if validate_run_id(env_run_id):
+                return env_run_id
+            # If invalid, log warning and sanitize
+            logger.warning(
+                f"Invalid WATCHTOWER_RUN_ID: {env_run_id}. "
+                "Sanitizing to prevent injection attacks."
+            )
+            sanitized = sanitize_run_id(env_run_id)
+            if sanitized:
+                return sanitized
+            # If sanitization fails, generate new ID
+            logger.warning("Sanitization failed, generating new run ID")
 
+        # Generate new run ID (always valid - only alphanumeric and hyphens)
         return str(uuid.uuid4())[:8]
 
     # === Lifecycle Hooks ===
@@ -181,7 +244,11 @@ class AgentTracePlugin(BasePlugin):
                 run_id=self.run_id,
                 request_id=callback_context.state["_llm_request_id"],
                 model=self._extract_model(llm_request),
-                message_count=len(llm_request.contents) if hasattr(llm_request, "contents") and llm_request.contents else 0,
+                message_count=(
+                    len(llm_request.contents)
+                    if hasattr(llm_request, "contents") and llm_request.contents
+                    else 0
+                ),
                 tools_available=self._extract_tool_names(llm_request),
                 timestamp=time.time(),
             )
@@ -378,7 +445,12 @@ class AgentTracePlugin(BasePlugin):
         """
         try:
             # Capture state changes from ADK events
-            if hasattr(event, "actions") and event.actions and hasattr(event.actions, "state_delta") and event.actions.state_delta:
+            if (
+                hasattr(event, "actions")
+                and event.actions
+                and hasattr(event.actions, "state_delta")
+                and event.actions.state_delta
+            ):
                 trace_event = self.collector.create_event(
                     type="state.change",
                     run_id=self.run_id,
@@ -400,23 +472,43 @@ class AgentTracePlugin(BasePlugin):
         Args:
             event: Event dictionary to emit
         """
-        try:
-            if self.file_writer:
+        if self.file_writer:
+            try:
                 self.file_writer.write(event)
-            if self.stdout_writer:
+            except Exception as e:
+                self._log_internal_error(
+                    "_emit",
+                    WatchtowerWriteError(str(e), writer_type="file"),
+                )
+
+        if self.stdout_writer:
+            try:
                 self.stdout_writer.write(event)
-        except Exception as e:
-            self._log_internal_error("_emit", e)
+            except Exception as e:
+                self._log_internal_error(
+                    "_emit",
+                    WatchtowerWriteError(str(e), writer_type="stdout"),
+                )
 
     def _flush(self) -> None:
         """Flush all writers at end of run."""
-        try:
-            if self.file_writer:
+        if self.file_writer:
+            try:
                 self.file_writer.flush()
-            if self.stdout_writer:
+            except Exception as e:
+                self._log_internal_error(
+                    "_flush",
+                    WatchtowerWriteError(str(e), writer_type="file"),
+                )
+
+        if self.stdout_writer:
+            try:
                 self.stdout_writer.flush()
-        except Exception as e:
-            self._log_internal_error("_flush", e)
+            except Exception as e:
+                self._log_internal_error(
+                    "_flush",
+                    WatchtowerWriteError(str(e), writer_type="stdout"),
+                )
 
     def _extract_model(self, llm_request: LlmRequest) -> str:
         """Extract model name from LLM request.
@@ -466,7 +558,9 @@ class AgentTracePlugin(BasePlugin):
                 if token_type == "input":
                     return getattr(usage, "input_tokens", 0) or getattr(usage, "prompt_tokens", 0)
                 elif token_type == "output":
-                    return getattr(usage, "output_tokens", 0) or getattr(usage, "completion_tokens", 0)
+                    return getattr(usage, "output_tokens", 0) or getattr(
+                        usage, "completion_tokens", 0
+                    )
                 elif token_type == "total":
                     return getattr(usage, "total_tokens", 0)
             return 0
@@ -510,14 +604,20 @@ class AgentTracePlugin(BasePlugin):
     def _log_internal_error(self, context: str, error: Exception) -> None:
         """Log internal plugin errors without crashing the agent.
 
+        In normal mode, errors are logged and swallowed.
+        In debug mode (WATCHTOWER_DEBUG=1), errors are re-raised after logging.
+
         Args:
             context: Context where error occurred
             error: Exception that occurred
+
+        Raises:
+            WatchtowerError: In debug mode, wraps and re-raises the original error.
         """
-        # Log to stderr to avoid interfering with stdout streaming
-        import sys
-        print(
-            f"Warning: Watchtower plugin error in {context}: {error}",
-            file=sys.stderr,
-            flush=True,
-        )
+        logger.warning("Plugin error in %s: %s", context, error)
+
+        # In debug mode, re-raise the error for debugging
+        if self.debug:
+            if isinstance(error, WatchtowerError):
+                raise error
+            raise WatchtowerError(f"Error in {context}: {error}") from error

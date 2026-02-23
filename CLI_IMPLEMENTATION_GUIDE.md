@@ -861,16 +861,16 @@ import { TraceInfo } from './types.js';
 // ============================================================================
 
 /** Base directory for all agenttrace data */
-export const AGENTTRACE_DIR = path.join(os.homedir(), '.agenttrace');
+export const WATCHTOWER_DIR = path.join(os.homedir(), '.agenttrace');
 
 /** Directory containing trace files */
-export const TRACE_DIR = path.join(AGENTTRACE_DIR, 'traces');
+export const TRACE_DIR = path.join(WATCHTOWER_DIR, 'traces');
 
 /** CLI configuration file path */
-export const CLI_CONFIG_PATH = path.join(AGENTTRACE_DIR, 'cli.yaml');
+export const CLI_CONFIG_PATH = path.join(WATCHTOWER_DIR, 'cli.yaml');
 
 /** SDK configuration file path */
-export const SDK_CONFIG_PATH = path.join(AGENTTRACE_DIR, 'config.yaml');
+export const SDK_CONFIG_PATH = path.join(WATCHTOWER_DIR, 'config.yaml');
 
 // ============================================================================
 // DIRECTORY MANAGEMENT
@@ -889,8 +889,8 @@ export function ensureTraceDir(): void {
  * Ensure the base agenttrace directory exists
  */
 export function ensureBaseDir(): void {
-  if (!fs.existsSync(AGENTTRACE_DIR)) {
-    fs.mkdirSync(AGENTTRACE_DIR, { recursive: true, mode: 0o700 });
+  if (!fs.existsSync(WATCHTOWER_DIR)) {
+    fs.mkdirSync(WATCHTOWER_DIR, { recursive: true, mode: 0o700 });
   }
 }
 
@@ -1189,9 +1189,9 @@ export class ProcessManager extends EventEmitter {
         // Force unbuffered Python output
         PYTHONUNBUFFERED: '1',
         // Tell SDK to emit events to stdout
-        AGENTTRACE_LIVE: '1',
+        WATCHTOWER_LIVE: '1',
         // Pass our run ID to the SDK
-        AGENTTRACE_RUN_ID: this._runId,
+        WATCHTOWER_RUN_ID: this._runId,
       },
     });
 

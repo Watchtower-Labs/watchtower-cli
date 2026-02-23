@@ -134,6 +134,18 @@ export function loadConfig(): CliConfig {
 			config.defaultPython = parsed['defaultPython'];
 		}
 
+		if (typeof parsed['liveMaxEventsPerSecond'] === 'number') {
+			config.liveMaxEventsPerSecond = parsed['liveMaxEventsPerSecond'];
+		}
+
+		if (typeof parsed['liveBurstSize'] === 'number') {
+			config.liveBurstSize = parsed['liveBurstSize'];
+		}
+
+		if (typeof parsed['showPageSize'] === 'number') {
+			config.showPageSize = parsed['showPageSize'];
+		}
+
 		return config;
 	} catch {
 		// Return defaults on error
@@ -161,6 +173,9 @@ export function saveConfig(config: Partial<CliConfig>): void {
 		`maxEvents: ${merged.maxEvents}`,
 		`timestampFormat: ${merged.timestampFormat}`,
 		`defaultPython: ${merged.defaultPython}`,
+		`liveMaxEventsPerSecond: ${merged.liveMaxEventsPerSecond}`,
+		`liveBurstSize: ${merged.liveBurstSize}`,
+		`showPageSize: ${merged.showPageSize}`,
 		'',
 	];
 

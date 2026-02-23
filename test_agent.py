@@ -121,8 +121,8 @@ async def run_test_agent():
     print()
 
     # Check environment variables set by CLI tail mode
-    is_live_mode = os.environ.get("AGENTTRACE_LIVE") == "1"
-    run_id = os.environ.get("AGENTTRACE_RUN_ID")
+    is_live_mode = os.environ.get("WATCHTOWER_LIVE") == "1"
+    run_id = os.environ.get("WATCHTOWER_RUN_ID")
 
     print(f"Live mode: {is_live_mode}")
     print(f"Run ID: {run_id or 'auto-generated'}")

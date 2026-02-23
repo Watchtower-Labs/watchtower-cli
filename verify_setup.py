@@ -28,12 +28,12 @@ except ImportError as e:
 
 # Check environment detection
 import os
-is_live = os.environ.get("AGENTTRACE_LIVE") == "1"
-run_id = os.environ.get("AGENTTRACE_RUN_ID")
+is_live = os.environ.get("WATCHTOWER_LIVE") == "1"
+run_id = os.environ.get("WATCHTOWER_RUN_ID")
 
 print(f"✓ Environment variables:")
-print(f"  - AGENTTRACE_LIVE: {os.environ.get('AGENTTRACE_LIVE', 'not set')}")
-print(f"  - AGENTTRACE_RUN_ID: {os.environ.get('AGENTTRACE_RUN_ID', 'not set')}")
+print(f"  - WATCHTOWER_LIVE: {os.environ.get('WATCHTOWER_LIVE', 'not set')}")
+print(f"  - WATCHTOWER_RUN_ID: {os.environ.get('WATCHTOWER_RUN_ID', 'not set')}")
 print(f"  - Live mode detected: {is_live}")
 
 # Test plugin creation

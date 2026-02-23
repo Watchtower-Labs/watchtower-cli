@@ -60,6 +60,23 @@ Verify the SDK is installed:
 python -c "from watchtower import AgentTracePlugin; print('SDK installed successfully')"
 ```
 
+## CI Test Tiers
+
+Watchtower uses tiered CI to balance fast feedback with deep coverage:
+
+1. **Smoke (PR required, <5 min):**
+   - `cli-smoke`: CLI typecheck + formatting check
+   - `py-smoke`: core Python smoke tests + Python mypy smoke
+   - `cli-lint`: CLI lint ruleset validation
+2. **Standard (PR required, <20 min):**
+   - `cli-standard`: Node 18/20 on Linux/macOS
+   - `py-standard`: Python 3.9-3.12 on Linux/macOS
+   - `compat-regression`: import/build compatibility checks
+3. **Nightly (non-blocking, heavy matrix):**
+   - `cli-nightly-stress`: Linux/macOS/Windows, Node 18/20, runs `pnpm --filter @watchtower/cli test:stress` with `WATCHTOWER_STRESS=1`
+   - `py-nightly-matrix`: Linux/macOS/Windows, Python 3.9-3.12
+   - Artifacts retained for 14 days for failure debugging
+
 ## Test Workflows
 
 ### Workflow 1: Basic Trace Generation & Viewing
@@ -95,8 +112,8 @@ watchtower tail python test_agent.py
 ```
 
 This automatically:
-- Sets `AGENTTRACE_LIVE=1` environment variable
-- Generates a unique `AGENTTRACE_RUN_ID`
+- Sets `WATCHTOWER_LIVE=1` environment variable
+- Generates a unique `WATCHTOWER_RUN_ID`
 - Spawns the Python script
 - Streams events to the terminal as they occur
 
@@ -133,11 +150,13 @@ watchtower show ~/.watchtower/traces/2024-01-04_abc123.jsonl
 watchtower config
 
 # Initialize default config file
-watchtower config --init
+watchtower config init
 
 # Set configuration values
-watchtower config --set theme=light
-watchtower config --set timestampFormat=absolute
+watchtower config set theme light
+watchtower config set timestampFormat absolute
+watchtower config set liveMaxEventsPerSecond 120
+watchtower config set liveBurstSize 30
 ```
 
 ## Testing Checklist
@@ -156,7 +175,7 @@ watchtower config --set timestampFormat=absolute
 - [ ] Events stream in real-time during agent execution
 - [ ] Pause/resume (p key) works correctly
 - [ ] Clean exit with Ctrl+C and q
-- [ ] `AGENTTRACE_LIVE` environment variable is detected by SDK
+- [ ] `WATCHTOWER_LIVE` environment variable is detected by SDK
 
 ### ✅ Event Type Tests
 
@@ -186,7 +205,7 @@ Verify all event types are captured and displayed:
 - [ ] Invalid JSONL files (corrupted data)
 - [ ] Missing trace directory (should auto-create)
 - [ ] Concurrent agents (multiple runs at same time)
-- [ ] Custom trace directories (`AGENTTRACE_DIR`)
+- [ ] Custom trace directories (`WATCHTOWER_TRACE_DIR`)
 
 ## Verification Commands
 
@@ -218,14 +237,14 @@ Add debug output to your test agent:
 
 ```python
 import os
-print(f"AGENTTRACE_LIVE: {os.environ.get('AGENTTRACE_LIVE')}")
-print(f"AGENTTRACE_RUN_ID: {os.environ.get('AGENTTRACE_RUN_ID')}")
+print(f"WATCHTOWER_LIVE: {os.environ.get('WATCHTOWER_LIVE')}")
+print(f"WATCHTOWER_RUN_ID: {os.environ.get('WATCHTOWER_RUN_ID')}")
 ```
 
 When run via `watchtower tail`, should output:
 ```
-AGENTTRACE_LIVE: 1
-AGENTTRACE_RUN_ID: <uuid>
+WATCHTOWER_LIVE: 1
+WATCHTOWER_RUN_ID: <uuid>
 ```
 
 ## Troubleshooting
@@ -258,7 +277,7 @@ pnpm link --global
 
 1. Check if tracing is disabled:
    ```bash
-   echo $AGENTTRACE_DISABLE  # Should be empty or unset
+   echo $WATCHTOWER_DISABLE  # Should be empty or unset
    ```
 
 2. Check trace directory permissions:
@@ -275,7 +294,7 @@ pnpm link --global
 
 1. Ensure `enable_stdout` responds to environment variable:
    ```python
-   enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1"
+   enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1"
    ```
 
 2. Check Python buffering (CLI sets `PYTHONUNBUFFERED=1` automatically)
@@ -309,7 +328,7 @@ Both should generate separate trace files with unique run IDs.
 ### Test Custom Trace Directory
 
 ```bash
-export AGENTTRACE_DIR=/tmp/custom-traces
+export WATCHTOWER_TRACE_DIR=/tmp/custom-traces
 python test_agent.py
 watchtower show last  # Should look in custom directory
 ```

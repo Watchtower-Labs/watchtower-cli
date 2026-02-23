@@ -12,6 +12,7 @@ The Watchtower CLI is a terminal-based tool for viewing and debugging [Google AD
   - [tail](#watchtower-tail)
   - [list](#watchtower-list)
   - [config](#watchtower-config)
+  - [clean](#watchtower-clean)
 - [Configuration](#configuration)
 - [Keyboard Shortcuts](#keyboard-shortcuts)
 - [Themes](#themes)
@@ -147,6 +148,13 @@ watchtower tail <script...>
 |----------|-------------|
 | `script` | Command and arguments to run |
 
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--max-events-per-second <n>` | Override live event processing rate limit |
+| `--burst-size <n>` | Override burst capacity for live rate limiting |
+
 **Environment Variables Set:**
 
 The CLI automatically sets these environment variables for the spawned process:
@@ -154,14 +162,17 @@ The CLI automatically sets these environment variables for the spawned process:
 | Variable | Value | Purpose |
 |----------|-------|---------|
 | `PYTHONUNBUFFERED` | `1` | Disable Python output buffering |
-| `AGENTTRACE_LIVE` | `1` | Signal SDK to enable stdout streaming |
-| `AGENTTRACE_RUN_ID` | `<uuid>` | Unique run identifier |
+| `WATCHTOWER_LIVE` | `1` | Signal SDK to enable stdout streaming |
+| `WATCHTOWER_RUN_ID` | `<uuid>` | Unique run identifier |
 
 **Examples:**
 
 ```bash
 # Basic usage
 watchtower tail python my_agent.py
+
+# Override live stream rate limits
+watchtower tail --max-events-per-second 200 --burst-size 50 -- python my_agent.py
 
 # With script arguments (use -- to separate CLI args from script args)
 watchtower tail -- python my_agent.py --verbose
@@ -200,8 +211,8 @@ import os
 from watchtower import AgentTracePlugin
 
 plugin = AgentTracePlugin(
-    enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1",
-    run_id=os.environ.get("AGENTTRACE_RUN_ID"),
+    enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1",
+    run_id=os.environ.get("WATCHTOWER_RUN_ID"),
 )
 ```
 
@@ -269,15 +280,8 @@ watchtower list --since 2024-01-10
 View and manage CLI configuration.
 
 ```bash
-watchtower config [options]
+watchtower config [action] [key] [value]
 ```
-
-**Options:**
-
-| Option | Description |
-|--------|-------------|
-| `--init` | Create default config file if it doesn't exist |
-| `--set <key=value>` | Set a configuration value |
 
 **Examples:**
 
@@ -286,13 +290,16 @@ watchtower config [options]
 watchtower config
 
 # Initialize default config
-watchtower config --init
+watchtower config init
 
 # Set configuration values
-watchtower config --set theme=light
-watchtower config --set timestampFormat=absolute
-watchtower config --set maxEvents=500
-watchtower config --set defaultPython=/usr/bin/python3
+watchtower config set theme light
+watchtower config set timestampFormat absolute
+watchtower config set maxEvents 500
+watchtower config set defaultPython /usr/bin/python3
+watchtower config set liveMaxEventsPerSecond 120
+watchtower config set liveBurstSize 30
+watchtower config set showPageSize 200
 ```
 
 **Configuration Keys:**
@@ -303,6 +310,42 @@ watchtower config --set defaultPython=/usr/bin/python3
 | `maxEvents` | number | Any positive integer | `1000` | Max events to load |
 | `timestampFormat` | string | `relative`, `absolute`, `unix` | `relative` | Time display format |
 | `defaultPython` | string | Path to Python | `python3` | Python executable for `tail` |
+| `liveMaxEventsPerSecond` | number | Any positive integer | `120` | Max events processed per second during `tail` |
+| `liveBurstSize` | number | Any positive integer | `30` | Burst capacity for live stream throttling |
+| `showPageSize` | number | Any positive integer | `200` | Events per page in streaming `show` view |
+
+---
+
+### `watchtower clean`
+
+Delete old trace files based on retention policy.
+
+```bash
+watchtower clean [options]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--retention <days>` | Retention period in days (default: 30) |
+| `--dry-run` | Show what would be deleted without deleting |
+| `--all` | Delete all trace files |
+| `--include-dead-letter` | Include dead-letter files in cleanup |
+| `--yes` | Skip confirmation prompt |
+
+**Examples:**
+
+```bash
+# Delete traces older than 30 days
+watchtower clean
+
+# Preview cleanup
+watchtower clean --dry-run
+
+# Include dead-letter cleanup
+watchtower clean --include-dead-letter --retention 7
+```
 
 ---
 
@@ -328,6 +371,13 @@ timestampFormat: relative
 
 # Python executable for tail command
 defaultPython: python3
+
+# Live stream throttling
+liveMaxEventsPerSecond: 120
+liveBurstSize: 30
+
+# Streaming show pagination size
+showPageSize: 200
 ```
 
 ### Trace Directory
@@ -338,7 +388,7 @@ Traces are stored in:
 ~/.watchtower/traces/
 ```
 
-This can be overridden by setting `AGENTTRACE_DIR` environment variable.
+This can be overridden by setting `WATCHTOWER_TRACE_DIR` environment variable.
 
 ---
 
@@ -485,7 +535,7 @@ The Python script failed. Check:
 
 1. **SDK not configured for stdout:**
    ```python
-   enable_stdout=os.environ.get("AGENTTRACE_LIVE") == "1"
+   enable_stdout=os.environ.get("WATCHTOWER_LIVE") == "1"
    ```
 
 2. **Python buffering output:** CLI sets `PYTHONUNBUFFERED=1`, but verify your script doesn't override.

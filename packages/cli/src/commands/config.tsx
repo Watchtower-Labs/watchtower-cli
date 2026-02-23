@@ -112,6 +112,41 @@ export function ConfigCommand({
 							break;
 						}
 
+						case 'liveMaxEventsPerSecond': {
+							const num = parseInt(value, 10);
+							if (isNaN(num) || num < 1) {
+								setError(
+									'Invalid liveMaxEventsPerSecond. Must be a positive number',
+								);
+								return;
+							}
+
+							updates.liveMaxEventsPerSecond = num;
+							break;
+						}
+
+						case 'liveBurstSize': {
+							const num = parseInt(value, 10);
+							if (isNaN(num) || num < 1) {
+								setError('Invalid liveBurstSize. Must be a positive number');
+								return;
+							}
+
+							updates.liveBurstSize = num;
+							break;
+						}
+
+						case 'showPageSize': {
+							const num = parseInt(value, 10);
+							if (isNaN(num) || num < 1) {
+								setError('Invalid showPageSize. Must be a positive number');
+								return;
+							}
+
+							updates.showPageSize = num;
+							break;
+						}
+
 						default: {
 							setError(`Unknown config key: ${key}`);
 							return;
@@ -187,6 +222,16 @@ export function ConfigCommand({
 						</Text>
 						<Text>
 							defaultPython: <Text bold>{config.defaultPython}</Text>
+						</Text>
+						<Text>
+							liveMaxEventsPerSecond:{' '}
+							<Text bold>{config.liveMaxEventsPerSecond}</Text>
+						</Text>
+						<Text>
+							liveBurstSize: <Text bold>{config.liveBurstSize}</Text>
+						</Text>
+						<Text>
+							showPageSize: <Text bold>{config.showPageSize}</Text>
 						</Text>
 					</Box>
 				</Box>

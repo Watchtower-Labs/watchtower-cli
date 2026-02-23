@@ -21,6 +21,14 @@ export function useTraceFile(traceRef: string): UseTraceFileResult {
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
+		if (!traceRef) {
+			setEvents([]);
+			setSummary(emptySummary());
+			setLoading(false);
+			setError(null);
+			return;
+		}
+
 		let cancelled = false;
 
 		async function loadTrace() {

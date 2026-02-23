@@ -28,20 +28,20 @@ The components communicate through:
 
 ## Repository Structure
 
-The project is organized as a monorepo with components on different branches:
+The project is organized as a single monorepo:
 
-| Branch | Package | Description |
-|--------|---------|-------------|
-| [`main`](https://github.com/Watchtower-Labs/watchtower-cli/tree/main) | - | Landing page (Next.js) and monorepo setup |
-| [`cli`](https://github.com/Watchtower-Labs/watchtower-cli/tree/cli) | `@watchtower/cli` | TypeScript CLI (Ink/React) |
-| [`feature/phase1-sdk-core`](https://github.com/Watchtower-Labs/watchtower-cli/tree/feature/phase1-sdk-core) | `watchtower-adk` | Python SDK (ADK plugin) |
+| Package | Description |
+|---------|-------------|
+| `packages/cli` | TypeScript CLI (Ink/React) |
+| `watchtower` | Python SDK (multi-framework observability) |
+| `packages/web` | Next.js documentation and marketing site |
 
 ```
 watchtower-cli/
 ├── packages/
-│   ├── cli/              # TypeScript CLI (cli branch)
-│   └── web/              # Next.js landing page (main branch)
-├── watchtower/           # Python SDK (feature/phase1-sdk-core branch)
+│   ├── cli/              # TypeScript CLI
+│   └── web/              # Next.js landing page and docs
+├── watchtower/           # Python SDK
 ├── tests/                # SDK unit and integration tests
 │   ├── test_basic.py         # Unit tests for core components
 │   └── test_real_search.py   # Integration test with real web search
@@ -100,7 +100,7 @@ watchtower-cli/
 
 ### Python SDK
 
-**Repository:** [Watchtower-Labs/watchtower-cli](https://github.com/Watchtower-Labs/watchtower-cli) ([`feature/phase1-sdk-core`](https://github.com/Watchtower-Labs/watchtower-cli/tree/feature/phase1-sdk-core) branch)
+**Repository:** [Watchtower-Labs/watchtower-cli](https://github.com/Watchtower-Labs/watchtower-cli)
 
 #### Structure
 
@@ -160,13 +160,13 @@ class AgentTracePlugin(BasePlugin):
 **StdoutWriter:**
 - Emits JSON-RPC 2.0 notifications to stdout
 - Line-buffered for real-time streaming
-- Used when `AGENTTRACE_LIVE=1`
+- Used when `WATCHTOWER_LIVE=1`
 
 ---
 
 ### TypeScript CLI
 
-**Repository:** [Watchtower-Labs/watchtower-cli](https://github.com/Watchtower-Labs/watchtower-cli) ([`cli`](https://github.com/Watchtower-Labs/watchtower-cli/tree/cli) branch, `packages/cli`)
+**Repository:** [Watchtower-Labs/watchtower-cli](https://github.com/Watchtower-Labs/watchtower-cli), `packages/cli`
 
 #### Structure
 
@@ -243,7 +243,7 @@ function useProcessStream(
 ```
 
 - Spawns Python process with `child_process.spawn()`
-- Sets environment variables (`AGENTTRACE_LIVE`, etc.)
+- Sets environment variables (`WATCHTOWER_LIVE`, etc.)
 - Parses stdout via readline interface
 - Handles process lifecycle events
 
@@ -333,8 +333,8 @@ function useKeyboard(handlers: {
 │                     │
 │ env:                │
 │   PYTHONUNBUFFERED=1│
-│   AGENTTRACE_LIVE=1 │
-│   AGENTTRACE_RUN_ID │
+│   WATCHTOWER_LIVE=1 │
+│   WATCHTOWER_RUN_ID │
 └──────────┬──────────┘
            │
            ▼

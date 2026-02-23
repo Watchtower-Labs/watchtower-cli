@@ -21,16 +21,21 @@ classifiers = [
 ]
 
 dependencies = [
-    "google-adk>=0.1.0",
+    "google-adk>=0.1.0,<1.0.0",
 ]
 
 [project.optional-dependencies]
+anthropic = ["anthropic>=0.20.0"]
+openai = ["openai>=1.0.0"]
 dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21",
+    "pytest-cov>=4.0",
     "black>=23.0",
     "mypy>=1.0",
     "ruff>=0.1.0",
+    "isort>=5.12.0",
+    "pre-commit>=3.0.0",
 ]
 test = [
     "requests>=2.31.0",
@@ -73,3 +78,26 @@ disallow_untyped_defs = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["watchtower"]
+omit = [
+    "tests/*",
+    "*/__init__.py",
+    "*/site-packages/*",
+    "*/venv/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+precision = 2
+
+[tool.coverage.xml]
+output = "coverage.xml"

@@ -1,7 +1,6 @@
 """Event collector for aggregating and normalizing trace events."""
 
-from typing import Dict, Any, List, Set
-from watchtower.models.events import RunSummary
+from typing import Dict, Any, Set
 
 
 class EventCollector:
@@ -11,7 +10,7 @@ class EventCollector:
     and provides helper methods for creating normalized events.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize event collector with fresh statistics."""
         self._llm_calls = 0
         self._tool_calls = 0
@@ -20,7 +19,7 @@ class EventCollector:
         self._tools_used: Set[str] = set()
         self._run_start_time: float = 0
 
-    def create_event(self, type: str, **kwargs) -> Dict[str, Any]:
+    def create_event(self, type: str, **kwargs: Any) -> Dict[str, Any]:
         """Create a normalized event dictionary.
 
         Args:

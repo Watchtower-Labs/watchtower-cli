@@ -4,13 +4,18 @@
  */
 
 import React from 'react';
+import {createRequire} from 'node:module';
 import {render} from 'ink';
 import yargs from 'yargs';
 import {hideBin} from 'yargs/helpers';
+
+const require = createRequire(import.meta.url);
+const {version} = require('../package.json') as {version: string};
 import {ShowCommand} from './commands/show.js';
 import {TailCommand} from './commands/tail.js';
 import {ListCommand} from './commands/list.js';
 import {ConfigCommand} from './commands/config.js';
+import {CleanCommand} from './commands/clean.js';
 
 // Parse arguments and render appropriate command
 void yargs(hideBin(process.argv))
@@ -33,14 +38,29 @@ void yargs(hideBin(process.argv))
 		'tail <script..>',
 		'Run a script and stream events live',
 		yargs =>
-			yargs.positional('script', {
-				describe: 'Command and arguments to run',
-				type: 'string',
-				array: true,
-				demandOption: true,
-			}),
+			yargs
+				.positional('script', {
+					describe: 'Command and arguments to run',
+					type: 'string',
+					array: true,
+					demandOption: true,
+				})
+				.option('max-events-per-second', {
+					type: 'number',
+					description: 'Override max live events processed per second',
+				})
+				.option('burst-size', {
+					type: 'number',
+					description: 'Override burst capacity for live event rate limiting',
+				}),
 		argv => {
-			render(<TailCommand script={argv.script as string[]} />);
+			render(
+				<TailCommand
+					script={argv.script as string[]}
+					maxEventsPerSecond={argv.maxEventsPerSecond}
+					burstSize={argv.burstSize}
+				/>,
+			);
 		},
 	)
 	.command(
@@ -93,10 +113,61 @@ void yargs(hideBin(process.argv))
 			);
 		},
 	)
+	.command(
+		'clean',
+		'Delete old traces based on retention policy',
+		yargs =>
+			yargs
+				.option('dry-run', {
+					alias: 'd',
+					type: 'boolean',
+					description: 'Show what would be deleted without deleting',
+					default: false,
+				})
+				.option('all', {
+					alias: 'a',
+					type: 'boolean',
+					description: 'Delete all traces (with confirmation)',
+					default: false,
+				})
+				.option('retention', {
+					alias: 'r',
+					type: 'number',
+					description: 'Retention period in days',
+					default: 30,
+				})
+				.option('yes', {
+					alias: 'y',
+					type: 'boolean',
+					description: 'Skip confirmation prompt',
+					default: false,
+				})
+				.option('include-dead-letter', {
+					type: 'boolean',
+					description: 'Include dead-letter files in cleanup',
+					default: false,
+				})
+				.example('$0 clean', 'Delete traces older than 30 days')
+				.example('$0 clean --dry-run', 'Show what would be deleted')
+				.example('$0 clean --retention 7', 'Delete traces older than 7 days')
+				.example('$0 clean --all', 'Delete all traces')
+				.example('$0 clean --yes', 'Delete without confirmation'),
+		argv => {
+			render(
+				<CleanCommand
+					dryRun={argv.dryRun}
+					all={argv.all}
+					retentionDays={argv.retention}
+					yes={argv.yes}
+					includeDeadLetter={argv.includeDeadLetter}
+				/>,
+			);
+		},
+	)
 	.demandCommand(1, 'You need to specify a command')
 	.help()
 	.alias('help', 'h')
-	.version()
+	.version(version)
 	.alias('version', 'v')
 	.example('$0 show last', 'View the most recent trace')
 	.example('$0 show abc123', 'View trace with run ID abc123')

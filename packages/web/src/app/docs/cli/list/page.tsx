@@ -131,7 +131,7 @@ watchtower list --since 2024-01-10`}
       </div>
 
       <p className="text-muted mt-4">
-        This can be overridden by setting the <code className="text-primary">AGENTTRACE_DIR</code> environment variable.
+        This can be overridden by setting the <code className="text-primary">WATCHTOWER_TRACE_DIR</code> environment variable.
       </p>
 
       <div className="not-prose mt-12 flex gap-4">

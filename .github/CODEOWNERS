@@ -1,0 +1,21 @@
+# CODEOWNERS
+# These owners will be requested for review on PRs that modify listed paths.
+
+# Python SDK
+/watchtower/ @Watchtower-Labs/maintainers
+/tests/ @Watchtower-Labs/maintainers
+/pyproject.toml @Watchtower-Labs/maintainers
+
+# TypeScript CLI
+/packages/cli/ @Watchtower-Labs/maintainers
+
+# Web Dashboard
+/packages/web/ @Watchtower-Labs/maintainers
+
+# CI/CD and Infrastructure
+/.github/ @Watchtower-Labs/maintainers
+/scripts/ @Watchtower-Labs/maintainers
+
+# Documentation
+/docs/ @Watchtower-Labs/maintainers
+/*.md @Watchtower-Labs/maintainers

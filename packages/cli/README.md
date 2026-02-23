@@ -148,6 +148,7 @@ async for event in runner.run_async(user_id, session_id, message):
 | ----------------------- | ---------------------------------------------------------- |
 | `WATCHTOWER_TRACE_DIR`  | Override trace directory (default: `~/.watchtower/traces`) |
 | `WATCHTOWER_CONFIG_DIR` | Override config directory (default: `~/.watchtower`)       |
+| `WATCHTOWER_HOME`       | Override home dir for bookmarks and other data files (default: `~`) |
 
 ## Development
 

@@ -2,14 +2,13 @@
 
 import json
 import tempfile
-from pathlib import Path
 import pytest
 
 from watchtower.models.events import EventType, RunStartEvent
 from watchtower.writers.file_writer import FileWriter
 from watchtower.writers.stdout_writer import StdoutWriter
 from watchtower.collector import EventCollector
-from watchtower.utils.sanitization import sanitize_args
+from watchtower.utils.sanitization import sanitize_args, Sanitizer
 
 
 def test_event_creation():
@@ -152,6 +151,21 @@ def test_sanitize_args():
     assert sanitized["nested"]["data"] == "public_data"
 
 
+def test_sanitizer_backward_compat_wrapper():
+    """Test backward-compatible Sanitizer wrapper."""
+    sanitizer = Sanitizer()
+    payload = {
+        "api_key": "secret",
+        "nested": {"token": "abc"},
+        "query": "hello",
+    }
+    sanitized = sanitizer.sanitize_dict(payload)
+
+    assert sanitized["api_key"] == "[REDACTED]"
+    assert sanitized["nested"]["token"] == "[REDACTED]"
+    assert sanitized["query"] == "hello"
+
+
 def test_create_event():
     """Test event creation via collector."""
     collector = EventCollector()
@@ -171,3 +185,22 @@ def test_create_event():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+def test_create_observer_accepts_string_framework():
+    """create_observer should accept string framework names."""
+    from unittest.mock import patch, MagicMock
+    from watchtower.sdk import Watchtower
+    with patch("watchtower.sdk.GoogleADKObserver") as mock:
+        mock.return_value = MagicMock()
+        observer = Watchtower.create_observer(framework="google_adk")
+        assert observer is not None
+        mock.assert_called_once()
+
+
+def test_create_observer_rejects_invalid_string_framework():
+    """create_observer should raise ValueError with helpful message for invalid frameworks."""
+    import pytest
+    from watchtower.sdk import Watchtower
+    with pytest.raises(ValueError, match="Unsupported framework"):
+        Watchtower.create_observer(framework="invalid_framework_xyz")

@@ -4,7 +4,8 @@
 		"outDir": "dist",
 		"module": "NodeNext",
 		"moduleResolution": "NodeNext",
-		"strict": true
+		"strict": true,
+		"downlevelIteration": true
 	},
 	"include": ["src"]
 }

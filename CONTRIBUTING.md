@@ -35,46 +35,54 @@ By participating in this project, you agree to maintain a welcoming and inclusiv
 
 ### Prerequisites
 
-- **Node.js** 18 or higher
-- **pnpm** (recommended) or npm
-- **Python** 3.9+ (for SDK development)
+- **Node.js** 20 (use `nvm use` with included `.nvmrc`)
+- **pnpm** 8+ (recommended)
+- **Python** 3.10+ (for SDK development)
 - **Git**
-
-### Repository Branches
-
-| Branch | Content | Development Focus |
-|--------|---------|-------------------|
-| [`main`](https://github.com/Watchtower-Labs/watchtower-cli/tree/main) | Web + Base | Landing page, monorepo setup |
-| [`cli`](https://github.com/Watchtower-Labs/watchtower-cli/tree/cli) | TypeScript CLI | Terminal UI development |
-| [`feature/phase1-sdk-core`](https://github.com/Watchtower-Labs/watchtower-cli/tree/feature/phase1-sdk-core) | Python SDK | SDK/plugin development |
 
 ### CLI Development
 
 ```bash
-# Clone the CLI branch
-git clone -b cli https://github.com/Watchtower-Labs/watchtower-cli.git
+# Clone the repository
+git clone https://github.com/Watchtower-Labs/watchtower-cli.git
 cd watchtower-cli
+
+# Use correct Node version
+nvm use
 
 # Install dependencies
 pnpm install
 
 # Build the CLI
-pnpm --filter @watchtower/cli build
+pnpm build:cli
 
-# Run the CLI directly
+# Watch mode (rebuild on changes)
+pnpm dev:cli
+
+# Run type checking
+pnpm typecheck
+
+# Run linter
+pnpm lint
+
+# Auto-fix lint issues
+pnpm lint:fix
+
+# Run tests
+pnpm test
+
+# Run CLI directly
 node packages/cli/dist/index.js show last
 
-# Or link it globally for development
-cd packages/cli
-pnpm link --global
+# Or link globally for development
+cd packages/cli && pnpm link --global
 watchtower --help
 ```
 
 ### SDK Development
 
 ```bash
-# Clone the SDK branch
-git clone -b feature/phase1-sdk-core https://github.com/Watchtower-Labs/watchtower-cli.git
+# From repository root
 cd watchtower-cli
 
 # Create virtual environment
@@ -87,60 +95,49 @@ pip install -e ".[dev]"
 # Run tests
 pytest
 
-# Run linters
-black watchtower tests
-ruff check watchtower tests
-mypy watchtower
-```
+# Run with coverage
+pytest --cov=watchtower
 
-### Watch Mode (CLI)
-
-```bash
-# Rebuild on changes
-pnpm --filter @watchtower/cli dev
+# Enable debug mode
+WATCHTOWER_DEBUG=1 python your_script.py
 ```
 
 ## Project Structure
-
-The repository uses different branches for different components:
-
-### CLI Branch (`cli`)
-
-```
-watchtower-cli/
-├── packages/
-│   ├── cli/                    # TypeScript CLI (Ink/React)
-│   │   ├── src/
-│   │   │   ├── index.tsx       # Entry point
-│   │   │   ├── commands/       # CLI commands (show, tail, list, config)
-│   │   │   ├── components/     # React/Ink UI components
-│   │   │   ├── hooks/          # Custom React hooks
-│   │   │   └── lib/            # Utilities (parser, theme, paths, config)
-│   │   ├── dist/               # Compiled output
-│   │   └── package.json
-│   └── web/                    # Next.js marketing site
-├── docs/                       # Documentation
-├── README.md
-├── CONTRIBUTING.md
-└── package.json                # Root monorepo config
-```
-
-### SDK Branch (`feature/phase1-sdk-core`)
 
 ```
 watchtower-cli/
 ├── watchtower/                 # Python SDK package
 │   ├── __init__.py            # Public API exports
 │   ├── plugin.py              # ADK plugin implementation
-│   ├── collector.py           # Event collection
+│   ├── exceptions.py          # Custom exception hierarchy
 │   ├── config.py              # Configuration management
+│   ├── cleanup.py             # Trace retention utilities
 │   ├── models/                # Event dataclasses
-│   ├── utils/                 # Utilities (sanitization)
-│   └── writers/               # File and stdout writers
+│   │   └── events.py          # Event types with schema versioning
+│   ├── utils/                 # Utilities
+│   │   ├── sanitization.py    # Data sanitization
+│   │   └── serialization.py   # JSON encoding
+│   └── writers/               # Event writers
+│       └── file_writer.py     # JSONL file writer
+├── packages/
+│   └── cli/                   # TypeScript CLI (Ink/React)
+│       ├── src/
+│       │   ├── index.tsx      # Entry point
+│       │   ├── commands/      # CLI commands (show, tail, list, config, clean)
+│       │   ├── components/    # React/Ink UI components
+│       │   ├── hooks/         # Custom React hooks
+│       │   ├── lib/           # Utilities (parser, theme, config, bookmarks)
+│       │   └── __tests__/     # Test files
+│       ├── dist/              # Compiled output
+│       └── package.json
 ├── examples/                  # Usage examples
 ├── tests/                     # SDK tests
+├── .github/workflows/         # CI/CD pipelines
 ├── pyproject.toml            # Python package config
-└── requirements.txt          # Dependencies
+├── package.json              # Root monorepo config
+├── .nvmrc                    # Node.js version
+├── CONTRIBUTING.md
+└── README.md
 ```
 
 ### Key Files

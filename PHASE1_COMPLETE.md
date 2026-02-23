@@ -73,10 +73,10 @@ Complete dataclass hierarchy for all event types:
 
 #### 5. **Configuration** ✅
 - ✅ Environment variable support:
-  - `AGENTTRACE_DIR` - custom trace directory
-  - `AGENTTRACE_LIVE` - enable stdout streaming
-  - `AGENTTRACE_RUN_ID` - custom run ID
-  - `AGENTTRACE_DISABLE` - disable tracing
+  - `WATCHTOWER_TRACE_DIR` - custom trace directory
+  - `WATCHTOWER_LIVE` - enable stdout streaming
+  - `WATCHTOWER_RUN_ID` - custom run ID
+  - `WATCHTOWER_DISABLE` - disable tracing
 - ✅ YAML config file support (optional)
 - ✅ Sensible defaults
 

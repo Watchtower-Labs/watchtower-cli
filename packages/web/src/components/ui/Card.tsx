@@ -1,74 +1,58 @@
 'use client'
 
-import { ReactNode } from 'react'
+import { forwardRef } from 'react'
+import { motion, HTMLMotionProps } from 'framer-motion'
+import { scaleIn, hoverGlow } from '@/lib/motion'
 
-interface CardProps {
-  children: ReactNode
-  className?: string
+interface CardProps extends Omit<HTMLMotionProps<'div'>, 'ref'> {
+  children: React.ReactNode
   hover?: boolean
-  gradient?: boolean
+  glow?: boolean
+  padding?: 'none' | 'sm' | 'md' | 'lg'
 }
 
-export function Card({ children, className = '', hover = true, gradient = false }: CardProps) {
-  const baseStyles = 'rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-6 transition-all duration-300'
-  const hoverStyles = hover ? 'hover:bg-white/10 hover:border-white/20 hover:scale-[1.02]' : ''
-  const gradientStyles = gradient ? 'gradient-border' : ''
+const paddingStyles = {
+  none: '',
+  sm: 'p-4',
+  md: 'p-6',
+  lg: 'p-8',
+}
 
-  return (
-    <div className={`${baseStyles} ${hoverStyles} ${gradientStyles} ${className}`}>
+export const Card = forwardRef<HTMLDivElement, CardProps>(
+  ({ children, hover = true, glow = false, padding = 'md', className = '', ...props }, ref) => {
+    const baseStyles = 'glass rounded-2xl'
+    const hoverStyles = hover ? 'transition-all duration-standard ease-elegant hover:bg-glass-hover hover:border-white/15' : ''
+    const glowStyles = glow ? 'shadow-glow' : ''
+
+    return (
+      <motion.div
+        ref={ref}
+        className={`${baseStyles} ${paddingStyles[padding]} ${hoverStyles} ${glowStyles} ${className}`}
+        variants={scaleIn}
+        initial="initial"
+        animate="animate"
+        whileHover={hover ? { ...hoverGlow, scale: 1.01 } : undefined}
+        {...props}
+      >
+        {children}
+      </motion.div>
+    )
+  }
+)
+
+Card.displayName = 'Card'
+
+// Glass card with prominent styling
+export const GlassCard = forwardRef<HTMLDivElement, CardProps>(
+  ({ children, className = '', ...props }, ref) => (
+    <Card
+      ref={ref}
+      className={`shadow-inner-glow ${className}`}
+      {...props}
+    >
       {children}
-    </div>
+    </Card>
   )
-}
+)
 
-interface CardHeaderProps {
-  children: ReactNode
-  className?: string
-}
-
-export function CardHeader({ children, className = '' }: CardHeaderProps) {
-  return (
-    <div className={`mb-4 ${className}`}>
-      {children}
-    </div>
-  )
-}
-
-interface CardTitleProps {
-  children: ReactNode
-  className?: string
-}
-
-export function CardTitle({ children, className = '' }: CardTitleProps) {
-  return (
-    <h3 className={`text-xl font-semibold text-white ${className}`}>
-      {children}
-    </h3>
-  )
-}
-
-interface CardDescriptionProps {
-  children: ReactNode
-  className?: string
-}
-
-export function CardDescription({ children, className = '' }: CardDescriptionProps) {
-  return (
-    <p className={`text-muted text-sm mt-1 ${className}`}>
-      {children}
-    </p>
-  )
-}
-
-interface CardContentProps {
-  children: ReactNode
-  className?: string
-}
-
-export function CardContent({ children, className = '' }: CardContentProps) {
-  return (
-    <div className={className}>
-      {children}
-    </div>
-  )
-}
+GlassCard.displayName = 'GlassCard'

@@ -36,7 +36,12 @@
 	"scripts": {
 		"build": "tsc",
 		"dev": "tsc --watch",
-		"test": "prettier --check . && xo && ava",
+		"test": "tsc --project tsconfig.test.json && ava dist/**/*.test.js",
+		"test:stress": "tsc --project tsconfig.test.json && WATCHTOWER_STRESS=1 ava dist/**/*.test.js --match='*stress*'",
+		"test:watch": "ava --watch dist/**/*.test.js",
+		"lint": "prettier --check . && xo",
+		"lint:fix": "prettier --write . && xo --fix",
+		"typecheck": "tsc --noEmit",
 		"prepublishOnly": "pnpm run build"
 	},
 	"files": [
@@ -71,19 +76,67 @@
 		"access": "public"
 	},
 	"ava": {
-		"extensions": {
-			"ts": "module",
-			"tsx": "module"
-		},
-		"nodeArguments": [
-			"--loader=ts-node/esm"
+		"files": [
+			"dist/**/*.test.js"
 		]
 	},
 	"xo": {
 		"extends": "xo-react",
 		"prettier": true,
 		"rules": {
-			"react/prop-types": "off"
+			"react/prop-types": "off",
+			"unicorn/expiring-todo-comments": "off",
+			"@typescript-eslint/naming-convention": "off",
+			"react/prefer-read-only-props": "off",
+			"unicorn/prevent-abbreviations": "off",
+			"@typescript-eslint/consistent-type-definitions": "off",
+			"unicorn/no-array-push-push": "off",
+			"@typescript-eslint/ban-types": "off",
+			"unicorn/switch-case-braces": "off",
+			"@typescript-eslint/padding-line-between-statements": "off",
+			"@typescript-eslint/restrict-template-expressions": "off",
+			"react/jsx-sort-props": "off",
+			"unicorn/filename-case": "off",
+			"unicorn/numeric-separators-style": "off",
+			"unicorn/prefer-number-properties": "off",
+			"react/boolean-prop-naming": "off",
+			"@typescript-eslint/no-implicit-any-catch": "off",
+			"n/prefer-global/process": "off",
+			"unicorn/text-encoding-identifier-case": "off",
+			"@typescript-eslint/no-inferrable-types": "off",
+			"unicorn/catch-error-name": "off",
+			"@typescript-eslint/prefer-readonly": "off",
+			"react/jsx-curly-brace-presence": "off",
+			"ava/no-ignored-test-files": "off",
+			"unicorn/better-regex": "off",
+			"react/no-unused-prop-types": "off",
+			"@typescript-eslint/prefer-nullish-coalescing": "off",
+			"react/jsx-no-useless-fragment": "off",
+			"@typescript-eslint/no-confusing-void-expression": "off",
+			"@typescript-eslint/no-unnecessary-type-assertion": "off",
+			"capitalized-comments": "off",
+			"object-shorthand": "off",
+			"prefer-destructuring": "off",
+			"no-promise-executor-return": "off",
+			"@typescript-eslint/switch-exhaustiveness-check": "warn",
+			"unicorn/no-for-loop": "off",
+			"eslint-comments/no-unused-disable": "off",
+			"unicorn/no-zero-fractions": "off",
+			"unicorn/prefer-switch": "off",
+			"react/no-unescaped-entities": "off",
+			"unicorn/no-useless-switch-case": "off",
+			"@typescript-eslint/parameter-properties": "off",
+			"@typescript-eslint/no-floating-promises": "warn",
+			"@typescript-eslint/no-unsafe-assignment": "off",
+			"n/prefer-global/buffer": "off",
+			"no-constant-condition": "warn",
+			"no-await-in-loop": "off",
+			"unicorn/no-process-exit": "off",
+			"unicorn/no-hex-escape": "off",
+			"no-else-return": "off",
+			"unicorn/no-array-for-each": "off",
+			"unicorn/prefer-optional-catch-binding": "off",
+			"@typescript-eslint/member-ordering": "off"
 		}
 	},
 	"prettier": "@vdemedes/prettier-config"

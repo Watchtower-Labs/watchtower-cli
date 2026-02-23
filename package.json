@@ -1,12 +1,42 @@
 {
   "name": "watchtower-cli",
   "version": "0.1.0",
+  "description": "Monorepo for Watchtower ADK observability tools",
+  "license": "MIT",
+  "author": "Watchtower Contributors",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Watchtower-Labs/watchtower-cli.git"
+  },
+  "homepage": "https://github.com/Watchtower-Labs/watchtower-cli#readme",
+  "bugs": {
+    "url": "https://github.com/Watchtower-Labs/watchtower-cli/issues"
+  },
+  "keywords": [
+    "adk",
+    "observability",
+    "tracing",
+    "agents",
+    "cli",
+    "dashboard"
+  ],
+  "engines": {
+    "node": ">=18",
+    "pnpm": ">=8"
+  },
   "scripts": {
     "dev": "pnpm --filter @watchtower/web dev",
     "dev:cli": "pnpm --filter @watchtower/cli dev",
     "build": "pnpm -r build",
     "build:web": "pnpm --filter @watchtower/web build",
-    "build:cli": "pnpm --filter @watchtower/cli build"
+    "build:cli": "pnpm --filter @watchtower/cli build",
+    "lint": "pnpm --filter @watchtower/cli lint",
+    "lint:fix": "pnpm --filter @watchtower/cli lint:fix",
+    "lint:web": "pnpm --filter @watchtower/web lint",
+    "typecheck": "pnpm --filter @watchtower/cli typecheck",
+    "typecheck:web": "pnpm --filter @watchtower/web typecheck",
+    "test": "pnpm --filter @watchtower/cli test",
+    "test:web": "pnpm --filter @watchtower/web test"
   }
 }
