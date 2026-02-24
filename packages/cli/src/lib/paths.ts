@@ -49,23 +49,16 @@ export function getTraceDir(): string {
 	const envDir = process.env['WATCHTOWER_TRACE_DIR'];
 	if (envDir) {
 		const resolvedDir = path.resolve(envDir);
-
-		// Validate that the path is safe (no directory traversal)
-		// Normalize path to check for traversal attempts
-		const normalized = path.normalize(resolvedDir);
 		const homeDir = os.homedir();
 
-		// Check for directory traversal patterns
-		// (e.g., containing '..', starting with '~' when not at home, etc.)
-		const hasTraversal =
-			normalized.includes('..') ||
-			(normalized.includes('~') && !normalized.startsWith(homeDir));
-
-		if (hasTraversal) {
+		// Require the trace directory to be within the user's home directory.
+		// path.resolve() already eliminates all '..' components, so a simple
+		// prefix check is sufficient after resolution.
+		if (!resolvedDir.startsWith(homeDir + path.sep) && resolvedDir !== homeDir) {
 			console.warn(
-				`WATCHTOWER_TRACE_DIR contains potentially unsafe path: ${envDir}. Using default directory.`,
+				`WATCHTOWER_TRACE_DIR "${envDir}" is outside the home directory. Using default directory.`,
 			);
-			return path.join(os.homedir(), DEFAULT_TRACE_DIR);
+			return path.join(homeDir, DEFAULT_TRACE_DIR);
 		}
 
 		return resolvedDir;

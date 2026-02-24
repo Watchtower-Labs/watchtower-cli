@@ -169,15 +169,14 @@ def validate_environment_variables() -> tuple[list[str], bool]:
             f'Must be alphanumeric, hyphens, underscores only, max 32 chars.'
         )
 
-    # Validate WATCHTOWER_TRACE_DIR if present
+    # Validate WATCHTOWER_TRACE_DIR if present — must be within home directory
     trace_dir = os.environ.get('WATCHTOWER_TRACE_DIR')
     if trace_dir:
-        # Default to current directory if base not specified
-        base_dir = os.environ.get('WATCHTOWER_BASE_DIR', os.getcwd())
+        base_dir = os.path.expanduser('~')
         if not validate_trace_dir(trace_dir, base_dir):
             errors.append(
                 f'Invalid WATCHTOWER_TRACE_DIR: {trace_dir}. '
-                f'Must be within base directory: {base_dir}'
+                f'Must be within the home directory: {base_dir}'
             )
 
     # Validate WATCHTOWER_DEFAULT_PYTHON if present

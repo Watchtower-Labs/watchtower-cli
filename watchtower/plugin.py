@@ -455,11 +455,12 @@ class AgentTracePlugin(BasePlugin):
                 and hasattr(event.actions, "state_delta")
                 and event.actions.state_delta
             ):
+                raw_delta = dict(event.actions.state_delta)
                 trace_event = self.collector.create_event(
                     type="state.change",
                     run_id=self.run_id,
                     author=getattr(event, "author", "unknown"),
-                    state_delta=dict(event.actions.state_delta),
+                    state_delta=sanitize_args(raw_delta) if self.sanitize else raw_delta,
                     timestamp=time.time(),
                 )
                 self._emit(trace_event)
