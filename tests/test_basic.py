@@ -191,7 +191,9 @@ def test_create_observer_accepts_string_framework():
     """create_observer should accept string framework names."""
     from unittest.mock import patch, MagicMock
     from watchtower.sdk import Watchtower
-    with patch("watchtower.sdk.GoogleADKObserver") as mock:
+    # GoogleADKObserver is a lazy import inside create_observer(), so patch the
+    # attribute on the adapter module (which is already cached in sys.modules)
+    with patch("watchtower.adapters.google_adk.GoogleADKObserver") as mock:
         mock.return_value = MagicMock()
         observer = Watchtower.create_observer(framework="google_adk")
         assert observer is not None

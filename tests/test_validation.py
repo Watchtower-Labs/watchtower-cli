@@ -127,6 +127,8 @@ def test_validate_python_version_valid():
     assert validate_python_version('python3.10')
     assert validate_python_version('python3.11')
     assert validate_python_version('python3.12')
+    assert validate_python_version('python3.13')  # Now valid after regex broadened
+    assert validate_python_version('python3.8')   # Now valid after regex broadened
 
 
 def test_validate_python_version_invalid():
@@ -134,24 +136,23 @@ def test_validate_python_version_invalid():
     assert not validate_python_version('python2.7')
     assert not validate_python_version('python')
     assert not validate_python_version('/bin/sh')
-    assert not validate_python_version('python3.13')
-    assert not validate_python_version('python3.8')
     assert not validate_python_version('python3; rm -rf /')
 
 
 def test_validate_environment_variables_all_valid():
     """Test validation with all valid environment variables."""
+    from unittest.mock import patch
     with tempfile.TemporaryDirectory() as tmpdir:
-        base_dir = os.path.join(tmpdir, 'base')
-        trace_dir = os.path.join(base_dir, 'traces')
+        trace_dir = os.path.join(tmpdir, 'traces')
         os.makedirs(trace_dir)
 
         os.environ['WATCHTOWER_RUN_ID'] = 'test-run-123'
         os.environ['WATCHTOWER_TRACE_DIR'] = trace_dir
-        os.environ['WATCHTOWER_BASE_DIR'] = base_dir
         os.environ['WATCHTOWER_DEFAULT_PYTHON'] = 'python3.11'
 
-        errors, is_valid = validate_environment_variables()
+        # Treat tmpdir as home dir so trace_dir passes home-containment check
+        with patch('os.path.expanduser', return_value=tmpdir):
+            errors, is_valid = validate_environment_variables()
 
         assert is_valid
         assert len(errors) == 0
@@ -159,7 +160,6 @@ def test_validate_environment_variables_all_valid():
         # Cleanup
         del os.environ['WATCHTOWER_RUN_ID']
         del os.environ['WATCHTOWER_TRACE_DIR']
-        del os.environ['WATCHTOWER_BASE_DIR']
         del os.environ['WATCHTOWER_DEFAULT_PYTHON']
 
 
