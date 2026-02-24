@@ -1,8 +1,6 @@
 # Watchtower CLI Guide
 
-The Watchtower CLI is a terminal-based tool for viewing and debugging [Google ADK](https://google.github.io/adk-docs/) agent traces.
-
-> **Source Code:** The CLI is implemented on the [`cli`](https://github.com/Watchtower-Labs/watchtower-cli/tree/cli) branch.
+The Watchtower CLI is a terminal-based tool for viewing and debugging AI agent traces. It works with all supported frameworks: Google ADK, Anthropic Claude, and OpenAI GPT.
 
 ## Table of Contents
 

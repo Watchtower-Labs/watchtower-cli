@@ -49,6 +49,12 @@ export function SearchBar({
 				return;
 			}
 
+			// Ctrl+A: move to beginning of line (clear query since cursor position isn't tracked)
+			if (key.ctrl && input === 'a') {
+				onChange('');
+				return;
+			}
+
 			// Ctrl+U: clear entire line
 			if (key.ctrl && input === 'u') {
 				onChange('');
@@ -89,7 +95,7 @@ export function SearchBar({
 				{resultCount}/{totalCount} matches
 			</Text>
 			<Text dimColor> | </Text>
-			<Text dimColor>Ctrl+W: del word | Ctrl+U: clear | Esc: close</Text>
+			<Text dimColor>Ctrl+A: beginning | Ctrl+W: del word | Ctrl+U: clear | Esc: close</Text>
 		</Box>
 	);
 }

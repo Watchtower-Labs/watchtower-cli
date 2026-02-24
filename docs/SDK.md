@@ -9,31 +9,13 @@ The Watchtower Python SDK provides observability for multiple AI agent framework
 | Framework | Status | Documentation |
 |-----------|--------|--------------|
 | Google ADK | ✅ Production | [Quick Start](#for-google-adk) |
-| Anthropic | ✅ Production | [Quick Start](#for-anthropic) | [Framework Docs](docs/MULTI_FRAMEWORK_SUPPORT.md) |
+| Anthropic | ✅ Production | [Quick Start](#for-anthropic) |
 | OpenAI | ✅ Production | [Quick Start](#for-openai) |
 | LangChain | 🚧 Coming Soon | - |
 
 All frameworks use a unified `AgentObserver` interface, providing consistent observability across different AI agent SDKs.
 
 ## Architecture
-
-```
-┌─────────────────────────────────────────────────┐
-│         User Code / Application                  │
-│                                               │
-│  ┌─────────────┐          ┌─────────┐ │
-│  │   Your Agent    │          │ Framework │ │
-│  │                 │          │          │ │
-│  └─────────────┘          └─────────┘ │
-│                                               │
-├─────────────────────┐    ┌───────────────┐     │
-│ │  Framework Adapter            │   Watchtower   │
-│ └─────────────────────┘    └──────────────┘     │
-│                                               │
-└─────────────────────────────────────────────┘
-│                                               │
-└──────────────────────────────────────────────┘
-```
 
 ### Key Components
 
@@ -88,7 +70,7 @@ pip install openai
 
 ## Quick Start
 
-### Option 1: Google ADK (Original Usage - No Changes Needed)
+### Option 1: Google ADK
 
 ```python
 from google.adk.agents import Agent
@@ -101,7 +83,7 @@ runner = InMemoryRunner(agent=agent, plugins=[plugin])
 result = runner.run(user_message="Hello, how are you today?")
 ```
 
-### Option 2: Anthropic Claude ⭐ NEW
+### Option 2: Anthropic Claude
 
 ```python
 from watchtower.sdk import create_for_anthropic
@@ -134,7 +116,7 @@ while True:
     })
 ```
 
-### Option 3: OpenAI GPT ⭐ NEW
+### Option 3: OpenAI GPT
 
 ```python
 from watchtower.sdk import create_for_openai
@@ -149,7 +131,6 @@ observer = create_for_openai(
 response = observer.observe_llm_call(
     messages=[{"role": "user", "content": "Calculate 2 + 2"}],
     tools=[{"type": "function", "function": {"name": "calculator", "description": "Performs calculations"}}],
-)
 )
 
 print(response.choices[0].message.content)
@@ -285,14 +266,7 @@ See [validation.py](../watchtower/utils/validation.py) for details.
 Run tests for the framework you're using:
 
 ```bash
-# Google ADK
-pytest tests/test_basic.py
-
-# Anthropic (when implemented)
-pytest tests/test_anthropic.py
-
-# OpenAI (when implemented)
-pytest tests/test_openai.py
+pytest tests/ -q
 ```
 
 ---

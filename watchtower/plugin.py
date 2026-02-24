@@ -445,6 +445,10 @@ class AgentTracePlugin(BasePlugin):
         """
         try:
             # Capture state changes from ADK events
+            # TODO: Use StateChangeEvent and AgentTransferEvent from
+            # watchtower.models.events instead of raw dicts here. These typed
+            # dataclasses are defined but not yet used — switching would enable
+            # schema validation and IDE autocomplete. See models/events.py.
             if (
                 hasattr(event, "actions")
                 and event.actions

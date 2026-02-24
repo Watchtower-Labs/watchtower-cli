@@ -350,19 +350,7 @@ This guide helps you resolve common issues when using Watchtower.
    ]
    ```
 
-2. **Enable agent panel view**:
-   ```bash
-   # View per-agent metrics
-   watchtower show last --view agents
-   ```
-
-3. **Filter by agent name**:
-   ```bash
-   # View only specific agent
-   watchtower show last --agent researcher
-   ```
-
-4. **Check agent IDs in trace events**:
+2. **Check agent IDs in trace events**:
    ```python
    # Each run should have unique agent_id
    # Check in trace file for agent_id field
@@ -533,12 +521,6 @@ This guide helps you resolve common issues when using Watchtower.
    watchtower config set showPageSize 100
    ```
 
-3. **Filter events**:
-   ```bash
-   # Load only events you need
-   watchtower show last --filter tool:search
-   ```
-
 ### High Memory Usage
 
 **Symptom**: CLI uses excessive memory
@@ -554,7 +536,7 @@ This guide helps you resolve common issues when using Watchtower.
 2. **Close unused traces**:
    ```bash
    # Clean up old trace files
-   watchtower clean --days 7
+   watchtower clean --retention 7
    ```
 
 ---
@@ -667,7 +649,7 @@ watchtower show last
 watchtower list
 
 # Clean old traces
-watchtower clean --days 7
+watchtower clean --retention 7
 
 # View configuration
 watchtower config

@@ -4,7 +4,7 @@
  * Design: Enhanced live streaming view with agent tracking
  */
 
-import React, {useState, useCallback, useRef} from 'react';
+import React, {useState, useCallback, useRef, useReducer} from 'react';
 import {Box, Text, Static} from 'ink';
 import {Header} from '../components/Header.js';
 import {Summary} from '../components/Summary.js';
@@ -24,6 +24,61 @@ import {getConfig} from '../lib/config.js';
 // Default max events buffer — overridden by config.maxEvents
 const DEFAULT_MAX_EVENTS_BUFFER = 500;
 
+// ── Live state reducer ────────────────────────────────────────────────────────
+
+type LiveState = {
+	completedEvents: TraceEvent[];
+	currentEvent: TraceEvent | null;
+	baseTimestamp: number;
+	agents: AgentInfo[];
+	models: ModelInfo[];
+	tools: ToolInfo[];
+	currentAgentName: string;
+};
+
+type LiveAction = {
+	type: 'ADD_EVENT';
+	event: TraceEvent;
+	maxBuffer: number;
+	agentUpdates?: AgentInfo[];
+	modelUpdates?: ModelInfo[];
+	toolUpdates?: ToolInfo[];
+	newCurrentAgentName?: string;
+};
+
+const initialLiveState: LiveState = {
+	completedEvents: [],
+	currentEvent: null,
+	baseTimestamp: 0,
+	agents: [],
+	models: [],
+	tools: [],
+	currentAgentName: '',
+};
+
+function liveReducer(state: LiveState, action: LiveAction): LiveState {
+	const {event, maxBuffer} = action;
+
+	// Move previous current event into completed buffer (single allocation)
+	let completed = state.currentEvent
+		? [...state.completedEvents, state.currentEvent]
+		: state.completedEvents;
+
+	if (completed.length > maxBuffer) {
+		completed = completed.slice(-maxBuffer);
+	}
+
+	return {
+		completedEvents: completed,
+		currentEvent: event,
+		baseTimestamp: state.baseTimestamp === 0 ? event.timestamp : state.baseTimestamp,
+		agents: action.agentUpdates ?? state.agents,
+		models: action.modelUpdates ?? state.models,
+		tools: action.toolUpdates ?? state.tools,
+		currentAgentName: action.newCurrentAgentName ?? state.currentAgentName,
+	};
+}
+
 export interface TailCommandProps {
 	script: string[];
 	maxEventsPerSecond?: number;
@@ -38,10 +93,9 @@ export function TailCommand({
 	const config = getConfig();
 	const MAX_EVENTS_BUFFER = config.liveMaxBuffer ?? DEFAULT_MAX_EVENTS_BUFFER;
 	const [paused, setPaused] = useState(false);
-	const [completedEvents, setCompletedEvents] = useState<TraceEvent[]>([]);
-	const [currentEvent, setCurrentEvent] = useState<TraceEvent | null>(null);
-	const [baseTimestamp, setBaseTimestamp] = useState<number>(0);
-	const baseTimestampRef = useRef<number>(0);
+	const [liveState, dispatch] = useReducer(liveReducer, initialLiveState);
+	const {completedEvents, currentEvent, baseTimestamp, agents, models, tools, currentAgentName} = liveState;
+
 	const terminalSize = useTerminalSize();
 	const separatorWidth = Math.max(40, terminalSize.columns - 6);
 
@@ -49,36 +103,33 @@ export function TailCommand({
 	const completedEventsRef = useRef<TraceEvent[]>([]);
 	const currentEventRef = useRef<TraceEvent | null>(null);
 
-	// Track agents, models, tools in real-time
+	// Track agents, models, tools in real-time via mutable maps (no render on mutation)
 	const agentMapRef = useRef<Map<string, AgentInfo>>(new Map());
 	const modelMapRef = useRef<Map<string, ModelInfo>>(new Map());
 	const toolMapRef = useRef<Map<string, ToolInfo>>(new Map());
 	const pendingModelRef = useRef<string>(''); // Track which model is awaiting response
-	const [agents, setAgents] = useState<AgentInfo[]>([]);
-	const [models, setModels] = useState<ModelInfo[]>([]);
-	const [tools, setTools] = useState<ToolInfo[]>([]);
-	const [currentAgentName, setCurrentAgentName] = useState<string>('');
+	const currentAgentNameRef = useRef<string>(''); // Ref copy avoids stale closure in handleEvent
 
-	// Handle incoming events
+	// Handle incoming events — single dispatch per event batches all state updates
 	const handleEvent = useCallback(
 		(event: TraceEvent) => {
 			if (paused) return;
 
-			// Set base timestamp from first event using ref to avoid stale closure
-			if (baseTimestampRef.current === 0) {
-				baseTimestampRef.current = event.timestamp;
-				setBaseTimestamp(event.timestamp);
-			}
+			let agentUpdates: AgentInfo[] | undefined;
+			let modelUpdates: ModelInfo[] | undefined;
+			let toolUpdates: ToolInfo[] | undefined;
+			let newCurrentAgentName: string | undefined;
 
-			// Update agent tracking
+			// ── Agent tracking ─────────────────────────────────────────────────
 			if (event.type === 'run.start') {
-				const e = event as {agent_name?: string};
-				const agentName = e.agent_name ?? 'unknown';
-				setCurrentAgentName(agentName);
+				const agentName = (event as Record<string, unknown>)['agent_name'];
+				const name = typeof agentName === 'string' ? agentName : 'unknown';
+				newCurrentAgentName = name;
+				currentAgentNameRef.current = name;
 
-				if (!agentMapRef.current.has(agentName)) {
-					agentMapRef.current.set(agentName, {
-						name: agentName,
+				if (!agentMapRef.current.has(name)) {
+					agentMapRef.current.set(name, {
+						name,
 						eventCount: 0,
 						toolCalls: 0,
 						llmCalls: 0,
@@ -88,20 +139,15 @@ export function TailCommand({
 						lastEventIndex: completedEventsRef.current.length,
 					});
 				}
-
-				// Mark all other agents as inactive
-				for (const [name, agent] of agentMapRef.current.entries()) {
-					agentMapRef.current.set(name, {
-						...agent,
-						isActive: name === agentName,
-					});
+				for (const [n, a] of agentMapRef.current.entries()) {
+					agentMapRef.current.set(n, {...a, isActive: n === name});
 				}
-
-				setAgents([...agentMapRef.current.values()]);
+				agentUpdates = [...agentMapRef.current.values()];
 			} else if (event.type === 'agent.transfer') {
-				const e = event as {from_agent?: string; to_agent?: string};
-				const toAgent = e.to_agent ?? 'unknown';
-				setCurrentAgentName(toAgent);
+				const toAgentRaw = (event as Record<string, unknown>)['to_agent'];
+				const toAgent = typeof toAgentRaw === 'string' ? toAgentRaw : 'unknown';
+				newCurrentAgentName = toAgent;
+				currentAgentNameRef.current = toAgent;
 
 				if (!agentMapRef.current.has(toAgent)) {
 					agentMapRef.current.set(toAgent, {
@@ -115,24 +161,16 @@ export function TailCommand({
 						lastEventIndex: completedEventsRef.current.length,
 					});
 				}
-
-				// Mark all agents as inactive except target
-				for (const [name, agent] of agentMapRef.current.entries()) {
-					agentMapRef.current.set(name, {
-						...agent,
-						isActive: name === toAgent,
-					});
+				for (const [n, a] of agentMapRef.current.entries()) {
+					agentMapRef.current.set(n, {...a, isActive: n === toAgent});
 				}
-
-				setAgents([...agentMapRef.current.values()]);
+				agentUpdates = [...agentMapRef.current.values()];
 			}
 
-			// Update model tracking
+			// ── Model tracking ─────────────────────────────────────────────────
 			if (event.type === 'llm.request') {
-				const e = event as {model?: string};
-				const modelName = e.model ?? 'unknown';
-
-				// Track which model is pending response
+				const raw = event as Record<string, unknown>;
+				const modelName = typeof raw['model'] === 'string' ? raw['model'] : 'unknown';
 				pendingModelRef.current = modelName;
 
 				if (!modelMapRef.current.has(modelName)) {
@@ -145,50 +183,46 @@ export function TailCommand({
 						avgLatencyMs: 0,
 					});
 				}
-
-				const model = modelMapRef.current.get(modelName)!;
-				modelMapRef.current.set(modelName, {
-					...model,
-					requestCount: model.requestCount + 1,
-				});
+				const m = modelMapRef.current.get(modelName)!;
+				modelMapRef.current.set(modelName, {...m, requestCount: m.requestCount + 1});
 			} else if (event.type === 'llm.response') {
-				const e = event as {
-					total_tokens?: number;
-					input_tokens?: number;
-					output_tokens?: number;
-					model?: string;
-				};
+				const raw = event as Record<string, unknown>;
+				const totalTokens = typeof raw['total_tokens'] === 'number' ? raw['total_tokens'] : 0;
+				const inputTokens = typeof raw['input_tokens'] === 'number' ? raw['input_tokens'] : 0;
+				const outputTokens = typeof raw['output_tokens'] === 'number' ? raw['output_tokens'] : 0;
+				const modelName =
+					typeof raw['model'] === 'string'
+						? raw['model']
+						: pendingModelRef.current || 'unknown';
 
-				// Use model from response if available, otherwise use pending model
-				const modelName = e.model ?? pendingModelRef.current ?? 'unknown';
 				const model = modelMapRef.current.get(modelName);
-
 				if (model) {
 					modelMapRef.current.set(modelName, {
 						...model,
-						totalTokens: model.totalTokens + (e.total_tokens ?? 0),
-						inputTokens: model.inputTokens + (e.input_tokens ?? 0),
-						outputTokens: model.outputTokens + (e.output_tokens ?? 0),
+						totalTokens: model.totalTokens + totalTokens,
+						inputTokens: model.inputTokens + inputTokens,
+						outputTokens: model.outputTokens + outputTokens,
 					});
 				}
 
-				// Update current agent LLM count
-				const agent = agentMapRef.current.get(currentAgentName);
+				// Update agent LLM stats using ref (no stale closure)
+				const agentName = currentAgentNameRef.current;
+				const agent = agentMapRef.current.get(agentName);
 				if (agent) {
-					agentMapRef.current.set(currentAgentName, {
+					agentMapRef.current.set(agentName, {
 						...agent,
 						llmCalls: agent.llmCalls + 1,
-						tokens: agent.tokens + (e.total_tokens ?? 0),
+						tokens: agent.tokens + totalTokens,
 					});
+					agentUpdates = [...agentMapRef.current.values()];
 				}
-
-				setModels([...modelMapRef.current.values()]);
+				modelUpdates = [...modelMapRef.current.values()];
 			}
 
-			// Update tool tracking
+			// ── Tool tracking ──────────────────────────────────────────────────
 			if (event.type === 'tool.start') {
-				const e = event as {tool_name?: string};
-				const toolName = e.tool_name ?? 'unknown';
+				const raw = event as Record<string, unknown>;
+				const toolName = typeof raw['tool_name'] === 'string' ? raw['tool_name'] : 'unknown';
 
 				if (!toolMapRef.current.has(toolName)) {
 					toolMapRef.current.set(toolName, {
@@ -200,75 +234,65 @@ export function TailCommand({
 						totalDurationMs: 0,
 					});
 				}
+				const t = toolMapRef.current.get(toolName)!;
+				toolMapRef.current.set(toolName, {...t, callCount: t.callCount + 1});
 
-				const tool = toolMapRef.current.get(toolName)!;
-				toolMapRef.current.set(toolName, {
-					...tool,
-					callCount: tool.callCount + 1,
-				});
-
-				// Update current agent tool count
-				const agent = agentMapRef.current.get(currentAgentName);
+				const agentName = currentAgentNameRef.current;
+				const agent = agentMapRef.current.get(agentName);
 				if (agent) {
-					agentMapRef.current.set(currentAgentName, {
-						...agent,
-						toolCalls: agent.toolCalls + 1,
-					});
+					agentMapRef.current.set(agentName, {...agent, toolCalls: agent.toolCalls + 1});
+					agentUpdates = [...agentMapRef.current.values()];
 				}
-
-				setTools([...toolMapRef.current.values()]);
+				toolUpdates = [...toolMapRef.current.values()];
 			} else if (event.type === 'tool.end') {
-				const e = event as {tool_name?: string; duration_ms?: number};
-				const toolName = e.tool_name ?? 'unknown';
+				const raw = event as Record<string, unknown>;
+				const toolName = typeof raw['tool_name'] === 'string' ? raw['tool_name'] : 'unknown';
+				const durationMs = typeof raw['duration_ms'] === 'number' ? raw['duration_ms'] : 0;
 				const tool = toolMapRef.current.get(toolName);
 				if (tool) {
 					toolMapRef.current.set(toolName, {
 						...tool,
 						successCount: tool.successCount + 1,
-						totalDurationMs: tool.totalDurationMs + (e.duration_ms ?? 0),
+						totalDurationMs: tool.totalDurationMs + durationMs,
 						avgDurationMs:
-							(tool.totalDurationMs + (e.duration_ms ?? 0)) /
-							(tool.successCount + 1),
+							(tool.totalDurationMs + durationMs) / (tool.successCount + 1),
 					});
-
-					setTools([...toolMapRef.current.values()]);
+					toolUpdates = [...toolMapRef.current.values()];
 				}
 			} else if (event.type === 'tool.error') {
-				const e = event as {tool_name?: string};
-				const toolName = e.tool_name ?? 'unknown';
+				const raw = event as Record<string, unknown>;
+				const toolName = typeof raw['tool_name'] === 'string' ? raw['tool_name'] : 'unknown';
 				const tool = toolMapRef.current.get(toolName);
 				if (tool) {
-					toolMapRef.current.set(toolName, {
-						...tool,
-						errorCount: tool.errorCount + 1,
-					});
+					toolMapRef.current.set(toolName, {...tool, errorCount: tool.errorCount + 1});
 				}
-
-				setTools([...toolMapRef.current.values()]);
+				toolUpdates = [...toolMapRef.current.values()];
 			}
 
-			// State arrays updated within their respective event-type branches
-
-			// Move current event to completed buffer using refs (no stale closure)
+			// Keep completedEventsRef in sync for firstEventIndex tracking
 			if (currentEventRef.current) {
 				completedEventsRef.current = [
 					...completedEventsRef.current,
 					currentEventRef.current,
 				];
-				// Keep only the last MAX_EVENTS_BUFFER events
 				if (completedEventsRef.current.length > MAX_EVENTS_BUFFER) {
-					completedEventsRef.current = completedEventsRef.current.slice(
-						-MAX_EVENTS_BUFFER,
-					);
+					completedEventsRef.current = completedEventsRef.current.slice(-MAX_EVENTS_BUFFER);
 				}
-
-				setCompletedEvents([...completedEventsRef.current]);
 			}
-
 			currentEventRef.current = event;
-			setCurrentEvent(event);
+
+			// Single dispatch — one re-render per event
+			dispatch({
+				type: 'ADD_EVENT',
+				event,
+				maxBuffer: MAX_EVENTS_BUFFER,
+				agentUpdates,
+				modelUpdates,
+				toolUpdates,
+				newCurrentAgentName,
+			});
 		},
-		[paused, currentAgentName],
+		[paused],
 	);
 
 	const {status, runId, error, stats, stop} = useProcessStream(

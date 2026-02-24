@@ -42,6 +42,9 @@ const actionKeys: KeyBinding[] = [
 const showKeys: KeyBinding[] = [
 	{key: '/', description: 'Search events'},
 	{key: 'c', description: 'Clear search'},
+	{key: 'Ctrl+A', description: 'Beginning of line'},
+	{key: 'Ctrl+W', description: 'Delete word'},
+	{key: 'Ctrl+U', description: 'Clear line'},
 	{key: 'e', description: 'Export trace'},
 	{key: 'a', description: 'Toggle agent view'},
 	{key: 't', description: 'Toggle tools view'},

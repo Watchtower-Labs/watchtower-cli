@@ -266,19 +266,10 @@ View per-agent metrics:
 
 ### Filtering Multi-Agent Traces
 
+All agents are shown in the timeline view. Use search (`/`) within the viewer to filter by agent name or event type:
+
 ```bash
-# View all agents
 watchtower show last
-
-# Filter by specific agent
-watchtower show last --agent researcher
-
-# Filter by transfer events only
-watchtower show last --transfers-only
-
-# Filter by agent relationship
-watchtower show last --parent orchestrator
-watchtower show last --child researcher
 ```
 
 ## Best Practices
@@ -392,9 +383,8 @@ most_expensive = max(agent_metrics, key=lambda x: agent_metrics[x]["tokens"])
 
 **Solutions**:
 1. Use descriptive agent names
-2. Enable agent panel: `watchtower show last --view agents`
-3. Filter by agent: `watchtower show last --agent agent_name`
-4. Check agent IDs in trace events
+2. Use search (`/`) in the trace viewer to filter by agent name
+3. Check agent IDs in trace events
 
 ### Parallel Execution Timing Issues
 
@@ -469,14 +459,11 @@ shared_state = {
 Debug multi-agent workflows:
 
 ```bash
-# Live monitor specific agent
-watchtower tail python my_agent.py | grep "researcher"
+# Live monitor all agents
+watchtower tail python my_agent.py
 
-# View only transfers
-watchtower show last --transfers-only
-
-# Compare agent performance
-watchtower show last --view agents
+# View trace with all agent events
+watchtower show last
 ```
 
 ## Future Enhancements

@@ -66,3 +66,9 @@ pip-delete-this-directory.txt
 
 # Watchtower traces
 .watchtower/
+
+# Pytest temp directories
+pytest-of-*/
+
+# Claude Code user-specific settings (permissions, sandbox config)
+.claude/settings.local.json

@@ -1,6 +1,6 @@
 # Watchtower Architecture
 
-This document describes the internal architecture of Watchtower, an observability platform for [Google ADK](https://google.github.io/adk-docs/) agents.
+This document describes the internal architecture of Watchtower, an observability platform for AI agents (Google ADK, Anthropic Claude, OpenAI GPT).
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@ This document describes the internal architecture of Watchtower, an observabilit
 
 Watchtower consists of two main components:
 
-1. **Python SDK** (`watchtower-adk`) - Instruments ADK agents via a plugin system
+1. **Python SDK** (`watchtower-adk`) - Instruments AI agents across multiple frameworks
 2. **TypeScript CLI** (`@watchtower/cli`) - Renders traces in the terminal
 
 The components communicate through:
@@ -108,20 +108,26 @@ watchtower-cli/
 watchtower/
 ├── __init__.py              # Public API exports
 ├── plugin.py                # ADK BasePlugin implementation
+├── sdk.py                   # Watchtower factory + multi-framework creators
 ├── collector.py             # Event aggregation and normalization
+├── cleanup.py               # Dead-letter file cleanup
+├── exceptions.py            # Custom exception types
+├── config.py                # Configuration management
+├── adapters/
+│   ├── google_adk.py        # Google ADK adapter
+│   ├── anthropic.py         # Anthropic Claude adapter
+│   └── openai.py            # OpenAI GPT adapter
+├── core/
+│   └── interface.py         # AgentObserver abstract base class
+├── models/
+│   └── events.py            # Event dataclasses
 ├── writers/
-│   ├── __init__.py
 │   ├── file_writer.py       # Write traces to ~/.watchtower/traces/
 │   └── stdout_writer.py     # Emit NDJSON to stdout for live tail
-├── models/
-│   ├── __init__.py
-│   ├── events.py            # Event dataclasses
-│   └── trace.py             # Trace container and metadata
-├── config.py                # Configuration management
 └── utils/
-    ├── __init__.py
-    ├── timing.py            # High-resolution timing utilities
-    └── serialization.py     # JSON serialization helpers
+    ├── sanitization.py      # Sensitive data redaction
+    ├── serialization.py     # JSON serialization helpers
+    └── validation.py        # Input validation
 ```
 
 #### Plugin Architecture
@@ -507,7 +513,6 @@ watchtower tail --remote https://my-agent.run.app --auth-token $TOKEN
 
 ## References
 
-- [System Design Document](https://github.com/Watchtower-Labs/watchtower-cli/blob/main/adk-observability-system-design.md) - Full specification
 - [Google ADK Documentation](https://google.github.io/adk-docs/) - Agent framework
 - [Ink Documentation](https://github.com/vadimdemedes/ink) - Terminal UI framework
 - [JSON-RPC 2.0 Specification](https://www.jsonrpc.org/specification) - Live stream format
