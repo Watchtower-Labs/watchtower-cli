@@ -4,8 +4,7 @@ Parallel multi-agent workflow using Google ADK.
 Multiple agents work simultaneously on independent tasks.
 """
 
-from google.adk.agents import Agent
-from google.adk.agents.parallel import ParallelAgent
+from google.adk.agents import Agent, ParallelAgent
 from google.adk.runners import InMemoryRunner
 from watchtower import AgentTracePlugin
 
@@ -91,8 +90,7 @@ aggregator = Agent(
 # Parallel workflow - all agents run simultaneously
 parallel_research = ParallelAgent(
     name="research_team",
-    sub_agents=[news_researcher, academic_researcher, social_researcher, blog_researcher],
-    aggregator=aggregator,
+    sub_agents=[news_researcher, academic_researcher, social_researcher, blog_researcher, aggregator],
 )
 
 # Watchtower traces all parallel agent activity
@@ -136,8 +134,4 @@ print("=== View Trace ===")
 print(f"To view the parallel multi-agent trace, run:")
 print(f"  watchtower show {plugin.run_id}")
 print()
-print("Filter by researcher:")
-print(f"  watchtower show {plugin.run_id} --agent news_researcher")
-print(f"  watchtower show {plugin.run_id} --agent academic_researcher")
-print(f"  watchtower show {plugin.run_id} --agent social_researcher")
-print(f"  watchtower show {plugin.run_id} --agent blog_researcher")
+print("Use / search in the trace viewer to filter by agent name.")

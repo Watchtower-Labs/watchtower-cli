@@ -6,12 +6,14 @@ Auto-detects framework and creates appropriate observer.
 
 import importlib.util
 import logging
-from typing import Optional, Any
+from typing import Optional, Any, TYPE_CHECKING
 
 from watchtower.adapters.anthropic import AnthropicObserver
-from watchtower.adapters.google_adk import GoogleADKObserver, create_plugin
 from watchtower.adapters.openai import OpenAIObserver
 from watchtower.core.interface import AgentFramework, AgentObserver
+
+if TYPE_CHECKING:
+    from watchtower.adapters.google_adk import GoogleADKObserver
 
 logger = logging.getLogger("watchtower")
 
@@ -105,6 +107,7 @@ class Watchtower:
         # Create appropriate observer
         try:
             if detected_framework == AgentFramework.GOOGLE_ADK:
+                from watchtower.adapters.google_adk import GoogleADKObserver
                 return GoogleADKObserver(**kwargs)
             elif detected_framework == AgentFramework.ANTHROPIC:
                 return AnthropicObserver(**kwargs)
@@ -168,7 +171,7 @@ def create_for_google_adk(
     enable_file: bool = True,
     enable_stdout: bool = False,
     **kwargs: Any,
-) -> GoogleADKObserver:
+) -> "GoogleADKObserver":
     """Convenience function to create Google ADK observer.
 
     Args:
@@ -188,6 +191,7 @@ def create_for_google_adk(
         >>> plugin = create_for_google_adk(enable_stdout=True)
         >>> runner = InMemoryRunner(agent=agent, plugins=[plugin])
     """
+    from watchtower.adapters.google_adk import create_plugin
     return create_plugin(
         trace_dir=trace_dir,
         enable_file=enable_file,

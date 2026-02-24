@@ -4,8 +4,7 @@ Sequential multi-agent workflow using Google ADK.
 Agents execute in a defined order, passing results to the next.
 """
 
-from google.adk.agents import Agent
-from google.adk.agents.sequential import SequentialAgent
+from google.adk.agents import Agent, SequentialAgent
 from google.adk.runners import InMemoryRunner
 from watchtower import AgentTracePlugin
 
@@ -139,9 +138,4 @@ print("=== View Trace ===")
 print(f"To view the sequential multi-agent trace, run:")
 print(f"  watchtower show {plugin.run_id}")
 print()
-print("Filter by stage:")
-print(f"  watchtower show {plugin.run_id} --agent requirements_gatherer")
-print(f"  watchtower show {plugin.run_id} --agent architect")
-print(f"  watchtower show {plugin.run_id} --agent implementer")
-print(f"  watchtower show {plugin.run_id} --agent tester")
-print(f"  watchtower show {plugin.run_id} --agent deployer")
+print("Use / search in the trace viewer to filter by agent name.")

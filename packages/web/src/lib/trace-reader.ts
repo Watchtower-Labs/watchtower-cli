@@ -11,6 +11,12 @@ import {getTracesDir} from './config';
 import type {Trace, TraceEvent, TraceSummary} from './types';
 
 // -------------------------------------------------------
+// Module-level mtime cache — avoid re-reading unchanged files on every poll
+// -------------------------------------------------------
+
+const summaryCache = new Map<string, {mtime: number; result: FileSummary}>();
+
+// -------------------------------------------------------
 // Lightweight list — no full event arrays
 // -------------------------------------------------------
 
@@ -125,17 +131,32 @@ interface FileSummary {
 }
 
 function parseSummaryFromFile(filePath: string): FileSummary {
+  let mtime: number;
+  try {
+    mtime = statSync(filePath).mtimeMs;
+  } catch {
+    mtime = 0;
+  }
+
+  const cached = summaryCache.get(filePath);
+  if (cached && cached.mtime === mtime) {
+    return cached.result;
+  }
+
   const events = parseEventsFromFile(filePath);
   const runStart = events.find(e => e.type === 'run.start');
   const runEnd = events.find(e => e.type === 'run.end');
 
-  return {
+  const result: FileSummary = {
     agent_name: (runStart as {agent_name?: string} | undefined)?.agent_name,
     app_name: (runStart as {app_name?: string} | undefined)?.app_name,
     startedAt: runStart?.timestamp,
     completedAt: runEnd?.timestamp,
     summary: computeSummary(events),
   };
+
+  summaryCache.set(filePath, {mtime, result});
+  return result;
 }
 
 function parseEventsFromFile(filePath: string): TraceEvent[] {

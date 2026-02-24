@@ -41,8 +41,8 @@ function exportToJson(
 		summary: {
 			runId: summary.runId,
 			agentName: summary.agentName,
-			startTime: new Date(summary.startTime).toISOString(),
-			endTime: new Date(summary.endTime).toISOString(),
+			startTime: new Date(summary.startTime * 1000).toISOString(),
+			endTime: new Date(summary.endTime * 1000).toISOString(),
 			duration: summary.duration,
 			durationFormatted: formatDuration(summary.duration),
 			llmCalls: summary.llmCalls,
@@ -79,7 +79,7 @@ function exportToJson(
 			: null,
 		events: events.map(e => ({
 			...e,
-			timestampFormatted: new Date(e.timestamp).toISOString(),
+			timestampFormatted: new Date(e.timestamp * 1000).toISOString(),
 		})),
 	};
 
@@ -100,7 +100,7 @@ function exportToCsv(events: TraceEvent[], summary: TraceSummary): string {
 	// Events
 	for (const event of events) {
 		const e = event as Record<string, unknown>;
-		const timestamp = new Date(event.timestamp).toISOString();
+		const timestamp = new Date(event.timestamp * 1000).toISOString();
 		const type = event.type;
 		const agentName = String(e['agent_name'] ?? e['author'] ?? '');
 		const toolName = String(e['tool_name'] ?? '');
@@ -154,7 +154,7 @@ function exportToMarkdown(
 	lines.push(`| Run ID | \`${summary.runId}\` |`);
 	lines.push(`| Agent | ${summary.agentName} |`);
 	lines.push(
-		`| Start Time | ${new Date(summary.startTime).toLocaleString()} |`,
+		`| Start Time | ${new Date(summary.startTime * 1000).toLocaleString()} |`,
 	);
 	lines.push(`| Duration | ${formatDuration(summary.duration)} |`);
 	lines.push(`| LLM Calls | ${summary.llmCalls} |`);

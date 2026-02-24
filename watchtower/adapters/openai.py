@@ -126,17 +126,16 @@ class OpenAIObserver(AgentObserver):
         try:
             start_time = time.time()
 
-            if response is None:
-                return None
-
             messages: List[Dict[str, Any]] = request
             tools = kwargs.pop("tools", None)
-            provider_response = self.client.chat.completions.create(
+            create_kwargs: Dict[str, Any] = dict(
                 model=self.model,
                 messages=messages,
-                tools=tools,
-                **kwargs
+                **kwargs,
             )
+            if tools is not None:
+                create_kwargs["tools"] = tools
+            provider_response = self.client.chat.completions.create(**create_kwargs)
 
             duration_ms = (time.time() - start_time) * 1000
 
@@ -160,7 +159,7 @@ class OpenAIObserver(AgentObserver):
 
             # Get request/response IDs
             request_id = provider_response.id
-            finish_reason = provider_response.choices[0].finish_reason
+            finish_reason = provider_response.choices[0].finish_reason if provider_response.choices else None
 
             event = LLMEvent(
                 framework=self.get_framework(),
@@ -246,6 +245,9 @@ class OpenAIObserver(AgentObserver):
             List of tool call dictionaries
         """
         tool_calls: List[Dict[str, Any]] = []
+
+        if not response.choices:
+            return tool_calls
 
         message = response.choices[0].message
         if not message.tool_calls:

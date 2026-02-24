@@ -117,6 +117,34 @@ export function Header() {
             </motion.div>
           </div>
         </div>
+
+        {/* Mobile menu dropdown */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden mt-2 px-4 py-3 rounded-2xl border border-white/10 bg-black/80 backdrop-blur-2xl">
+            {navLinks.map((link) =>
+              link.external ? (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block py-2 text-sm text-gray-300 hover:text-white transition-colors"
+                >
+                  {link.label}
+                </a>
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="block py-2 text-sm text-gray-300 hover:text-white transition-colors"
+                  onClick={() => { setIsMobileMenuOpen(false) }}
+                >
+                  {link.label}
+                </Link>
+              )
+            )}
+          </div>
+        )}
       </nav>
     </motion.header>
   )

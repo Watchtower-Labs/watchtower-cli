@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Button } from './ui/Button'
 import { staggerContainerSlow, slideUp, fadeIn, duration, easing } from '@/lib/motion'
@@ -44,7 +43,7 @@ export function HeroSection() {
         variants={fadeIn}
         className="mt-8 text-lg sm:text-xl md:text-2xl text-gray-400 max-w-2xl leading-relaxed font-light"
       >
-        View traces, tail live events, and debug Google ADK agent behavior
+        View traces, tail live events, and debug AI agent behavior
         without leaving your terminal.
       </motion.p>
 
@@ -70,24 +69,6 @@ export function HeroSection() {
           pip install watchtower-adk
         </code>
       </motion.div>
-
-      {/* Product Hunt badge */}
-      <motion.a
-        variants={fadeIn}
-        className="mt-8 inline-flex"
-        href="https://www.producthunt.com/products/aimsg-3?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-aimsg-3"
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="View aImsg on Product Hunt"
-      >
-        <Image
-          alt="aImsg - Code From The Coffee Line. Ship from the Subway. | Product Hunt"
-          width={250}
-          height={54}
-          src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1083566&theme=neutral&t=1771729085004"
-          unoptimized
-        />
-      </motion.a>
 
       {/* Scroll indicator */}
       <motion.div

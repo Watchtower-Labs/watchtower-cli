@@ -141,7 +141,7 @@ def validate_python_version(python_version: str) -> bool:
         >>> validate_python_version('/bin/sh')
         False
     """
-    pattern = re.compile(r'^python3(?:\.(?:9|10|11|12))?$')
+    pattern = re.compile(r'^python3(?:\.\d+)?$')
     return bool(pattern.match(python_version))
 
 
@@ -185,7 +185,7 @@ def validate_environment_variables() -> tuple[list[str], bool]:
     if default_python and not validate_python_version(default_python):
         errors.append(
             f'Invalid WATCHTOWER_DEFAULT_PYTHON: {default_python}. '
-            f'Must be python3, python3.x where x is 9-12.'
+            f'Must be python3 or python3.x (e.g. python3.11).'
         )
 
     return errors, len(errors) == 0

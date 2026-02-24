@@ -82,6 +82,7 @@ orchestrator = Agent(
         "4. Delegate final review to the reviewer\n"
         "5. Provide final content and summary to the user"
     ),
+    sub_agents=[researcher, writer, editor, reviewer],
 )
 
 # Add Watchtower plugin
@@ -118,8 +119,4 @@ print("=== View Trace ===")
 print(f"To view the multi-agent trace, run:")
 print(f"  watchtower show {plugin.run_id}")
 print()
-print("To see agent transfers:")
-print(f"  watchtower show {plugin.run_id} --agent researcher")
-print(f"  watchtower show {plugin.run_id} --agent writer")
-print(f"  watchtower show {plugin.run_id} --agent editor")
-print(f"  watchtower show {plugin.run_id} --agent reviewer")
+print("Use / search in the trace viewer to filter by agent name.")

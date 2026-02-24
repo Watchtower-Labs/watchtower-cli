@@ -4,8 +4,7 @@ Loop-based multi-agent workflow using Google ADK.
 Agent runs iteratively with feedback until convergence.
 """
 
-from google.adk.agents import Agent
-from google.adk.agents.loop import LoopAgent
+from google.adk.agents import Agent, LoopAgent
 from google.adk.runners import InMemoryRunner
 from watchtower import AgentTracePlugin
 
@@ -63,17 +62,11 @@ improver = Agent(
     tools=[improve_code],
 )
 
-# Loop workflow - iteratively improve until quality threshold
+# Loop workflow - iteratively improve up to max_iterations
 code_refinement_loop = LoopAgent(
     name="refinement_loop",
     sub_agents=[reviewer, improver],
     max_iterations=3,
-    convergence_criteria="code_quality >= 8",
-    initial_state={
-        "code": "",
-        "code_quality": 0,
-        "feedback": []
-    },
 )
 
 # Watchtower traces each iteration of the loop
@@ -96,8 +89,7 @@ print("Execution Flow:")
 print("  Reviewer → Improver → Reviewer → Improver → Reviewer → ...")
 print("  Continue until convergence criteria met or max iterations reached")
 print()
-print("Convergence Criteria:")
-print("  • Code quality score >= 8/10")
+print("Loop configuration:")
 print("  • Maximum iterations: 3")
 print()
 print("Benefits of Loop Execution:")
@@ -122,6 +114,4 @@ print("=== View Trace ===")
 print(f"To view the loop-based multi-agent trace, run:")
 print(f"  watchtower show {plugin.run_id}")
 print()
-print("Filter by agent:")
-print(f"  watchtower show {plugin.run_id} --agent code_reviewer")
-print(f"  watchtower show {plugin.run_id} --agent code_improver")
+print("Use / search in the trace viewer to filter by agent name.")

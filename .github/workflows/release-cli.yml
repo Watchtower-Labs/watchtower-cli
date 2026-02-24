@@ -35,11 +35,14 @@ jobs:
       - name: Build CLI
         run: pnpm build:cli
 
+      - name: Run CLI tests
+        run: pnpm --filter @watchtower/cli test
+
       - name: Verify CLI runs
         run: node packages/cli/dist/index.js --help
 
       - name: Publish to npm
-        run: npm publish --access public
+        run: pnpm publish --access public --no-git-checks
         working-directory: packages/cli
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -272,6 +272,11 @@ class AgentObserver(ABC):
         self.file_writer = FileWriter(self.trace_dir) if self.enable_file else None
         self.stdout_writer = StdoutWriter() if self.enable_stdout else None
 
+    def flush(self) -> None:
+        """Flush any buffered trace data to disk."""
+        if self.file_writer and hasattr(self.file_writer, "flush"):
+            self.file_writer.flush()
+
     def _write_event(self, event: TraceEventType) -> None:
         """Write event to file and/or stdout.
 

@@ -41,6 +41,7 @@ class AnthropicObserver(AgentObserver):
         self,
         api_key: Optional[str] = None,
         model: str = "claude-sonnet-4-20250514",
+        max_tokens: int = 1024,
         **kwargs: Any,
     ) -> None:
         """Initialize the Anthropic observer.
@@ -48,12 +49,14 @@ class AnthropicObserver(AgentObserver):
         Args:
             api_key: Anthropic API key (reads ANTHROPIC_API_KEY env var if not provided)
             model: Model to use for API calls
+            max_tokens: Maximum tokens to generate (required by Anthropic API)
             **kwargs: Additional arguments passed to AgentObserver
         """
         super().__init__(**kwargs)
 
         self.model = model
         self.api_key = api_key
+        self.max_tokens = max_tokens
 
         # Lazy load Anthropic client
         self._client = None
@@ -132,13 +135,11 @@ class AnthropicObserver(AgentObserver):
         try:
             start_time = time.time()
 
-            if response is None:
-                return None
-
             messages: List[Dict[str, Any]] = request
             provider_response = self.client.messages.create(
                 model=self.model,
                 messages=messages,
+                max_tokens=kwargs.pop("max_tokens", self.max_tokens),
                 **kwargs
             )
 

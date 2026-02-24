@@ -67,9 +67,6 @@ export function EventListPaginated({
 		);
 	}
 
-	// Calculate global index for selected event
-	const globalIndex = page * events.length + selectedIndex;
-
 	return (
 		<Box
 			borderStyle="round"
@@ -118,18 +115,19 @@ export function EventListPaginated({
 
 			{/* Event lines */}
 			{events.map((event, index) => {
-				const isFirst = globalIndex === 0;
-				const isLast = globalIndex === totalEvents - 1;
+				const globalEventIndex = page * events.length + index;
+				const isFirst = globalEventIndex === 0;
+				const isLast = globalEventIndex === totalEvents - 1;
 
 				return (
 					<EventLine
-						key={`${event.timestamp}-${globalIndex}`}
+						key={`${event.timestamp}-${index}`}
 						event={event}
 						selected={index === selectedIndex}
 						baseTimestamp={baseTimestamp}
 						isFirst={isFirst}
 						isLast={isLast}
-						index={globalIndex}
+						index={globalEventIndex}
 						totalEvents={totalEvents}
 					/>
 				);

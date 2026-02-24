@@ -99,7 +99,7 @@ export function parseTraceFilename(filename: string): {
 	date: string;
 	runId: string;
 } | null {
-	const match = /^(\d{4}-\d{2}-\d{2})_([a-zA-Z0-9]+)\.jsonl$/.exec(filename);
+	const match = /^(\d{4}-\d{2}-\d{2})_([a-zA-Z0-9_-]+)\.jsonl$/.exec(filename);
 	if (!match) {
 		return null;
 	}

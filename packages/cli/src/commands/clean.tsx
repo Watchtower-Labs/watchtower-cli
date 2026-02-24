@@ -281,6 +281,15 @@ export function CleanCommand({
 		}
 	}, [status, filesToDelete]);
 
+	// Exit after terminal states render
+	useEffect(() => {
+		if (status === 'done' || status === 'error') {
+			const timer = setTimeout(() => exit(), 100);
+			return () => clearTimeout(timer);
+		}
+		return undefined;
+	}, [status, exit]);
+
 	if (status === 'scanning') {
 		return (
 			<Box>
